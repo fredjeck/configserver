@@ -11,10 +11,20 @@ import (
 const ENV_CONFIGSERVER_HOME = "CONFIGSERVER_HOME"
 const DEFAULT_HOME string = "/var/run/configserver"
 
+// Reads the configuration from the location pointed by the $CONFIGSERVER_HOME env variable.
+// If the variable is not defined, uses /var/run/configserver as a default.
+func Read() (*Config, error) {
+	root := os.Getenv(ENV_CONFIGSERVER_HOME)
+	if len(root) == 0 {
+		root = DEFAULT_HOME
+	}
+	return ReadFromPath(root)
+}
+
 // Reads the configuration from the location pointed by the provided configurationRoot parameter.
 // If this parameter is omited, tries to locate the configuration using the $CONFIGSERVER_HOME env variable.
 // If the variable is not defined, uses /var/run/configserver as a default.
-func Read(configurationRoot string) (*Config, error) {
+func ReadFromPath(configurationRoot string) (*Config, error) {
 	root := configurationRoot
 	if len(root) == 0 {
 		root = os.Getenv(ENV_CONFIGSERVER_HOME)
@@ -45,12 +55,14 @@ func Read(configurationRoot string) (*Config, error) {
 
 	conf := &Config{}
 	v.Unmarshal(&conf)
-	conf.Source = path.Join(root, "configserver.yaml")
+	conf.Home = root
+	conf.LoadedFrom = path.Join(root, "configserver.yaml")
 	return conf, nil
 }
 
 type Config struct {
 	Key          string
-	Source       string
+	LoadedFrom   string
+	Home         string
 	Repositories Repositories
 }
