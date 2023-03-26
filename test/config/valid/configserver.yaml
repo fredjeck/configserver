@@ -1,0 +1,6 @@
+key: "abcdef"
+repositories:
+  - url: "http://my.repo.com"
+    grants:
+      - clientid: "id"
+        clientsecret: "secret"
