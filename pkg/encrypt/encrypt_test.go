@@ -2,6 +2,7 @@ package encrypt
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -21,4 +22,15 @@ func TestEncryptDecrypt(t *testing.T) {
 		t.Error(derr)
 	}
 	assert.EqualValues(t, text, dec)
+}
+
+func TestEncryptionKeyStorage(t *testing.T) {
+	keyfile, _ := os.CreateTemp("", "keyfile")
+	key := NewEncryptionKey()
+	_ = StoreEncryptionKey(key, keyfile.Name())
+	retrievedKey, err := ReadEncryptionKey(keyfile.Name(), false)
+	if err != nil {
+		t.Error(err)
+	}
+	assert.Equal(t, key, retrievedKey)
 }

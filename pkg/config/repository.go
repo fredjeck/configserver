@@ -1,8 +1,9 @@
 package config
 
 type Repository struct {
-	Url    string
-	Grants Grants
+	Url             string
+	RefreshInterval int
+	Grants          Grants
 }
 type Repositories []Repository
 

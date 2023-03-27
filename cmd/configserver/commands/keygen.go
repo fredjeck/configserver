@@ -2,7 +2,6 @@ package commands
 
 import (
 	b64 "encoding/base64"
-	"os"
 	"path"
 
 	"github.com/fredjeck/configserver/pkg/encrypt"
@@ -43,7 +42,7 @@ You will need to rehash any encrypted sensitive values in your configuration fil
 		return
 	}
 
-	err = os.WriteFile(path.Join(Configuration.Home, "encryption.key"), []byte(encoded), 0644)
+	err = encrypt.StoreEncryptionKey(key, Configuration.EncryptionKeypath())
 	if err != nil {
 		Logger.Sugar().Errorf("Cannot create keyfile: %s", err.Error())
 	}

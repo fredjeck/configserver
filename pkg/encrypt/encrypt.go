@@ -16,8 +16,10 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	b64 "encoding/base64"
 	"errors"
 	"io"
+	"os"
 )
 
 // NewEncryptionKey generates a random 256-bit key for Encrypt() and
@@ -77,4 +79,42 @@ func Decrypt(ciphertext []byte, key *[32]byte) (plaintext []byte, err error) {
 		ciphertext[gcm.NonceSize():],
 		nil,
 	)
+}
+
+// Reads the encryption key stored at the provided location.
+// If createIfMissing is set to true, this function will attempt to create a new key if the file cannot be found
+func ReadEncryptionKey(keyFilePath string, createIfMissing bool) (*[32]byte, error) {
+	key := [32]byte{}
+
+	if _, err := os.Stat(keyFilePath); os.IsNotExist(err) {
+		if createIfMissing {
+			StoreEncryptionKey(NewEncryptionKey(), keyFilePath)
+		} else {
+			return nil, err
+		}
+	}
+
+	base64, err := os.ReadFile(keyFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	decoded, err := b64.StdEncoding.DecodeString(string(base64))
+	if err != nil {
+		return nil, err
+	}
+
+	copy(key[:], decoded)
+	return &key, nil
+}
+
+// Stores the encryption key at the provided location
+// Encryption keys are stored base 64 encoded
+func StoreEncryptionKey(key *[32]byte, keyFilePath string) error {
+	encoded := b64.StdEncoding.EncodeToString(key[:])
+	err := os.WriteFile(keyFilePath, []byte(encoded), 0644)
+	if err != nil {
+		return err
+	}
+	return nil
 }

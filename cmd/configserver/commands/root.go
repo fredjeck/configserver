@@ -1,8 +1,12 @@
 package commands
 
 import (
+	"time"
+
 	"github.com/fredjeck/configserver/pkg/config"
+	"github.com/fredjeck/configserver/pkg/encrypt"
 	"github.com/fredjeck/configserver/pkg/logging"
+	"github.com/fredjeck/configserver/pkg/repo"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -11,10 +15,12 @@ var (
 	home          string
 	Logger        *zap.Logger
 	Configuration *config.Config
+	Key           *[32]byte
 	RootCommand   = &cobra.Command{
 		Use:   "configserver",
 		Short: "Externalize our configuration in distributed systems",
 		Long:  `configserver allows you to server your configuration files from git repositories with style`,
+		Run:   startServer,
 	}
 )
 
@@ -43,4 +49,15 @@ func initConfig() {
 	}
 
 	Logger.Sugar().Infof("Configuration loaded from '%s'", Configuration.LoadedFrom)
+
+	Key, err = encrypt.ReadEncryptionKey(Configuration.EncryptionKeypath(), true)
+	if err != nil {
+		Logger.Sugar().Fatal(err)
+	}
+}
+
+func startServer(cmd *cobra.Command, args []string) {
+	mgr := repo.NewRepositoryManger(*Configuration)
+	mgr.Checkout()
+	time.Sleep(10 * time.Minute)
 }

@@ -66,3 +66,7 @@ type Config struct {
 	Home         string
 	Repositories Repositories
 }
+
+func (config Config) EncryptionKeypath() string {
+	return path.Join(config.Home, "encryption.key")
+}
