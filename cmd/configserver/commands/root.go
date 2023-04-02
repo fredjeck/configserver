@@ -58,5 +58,6 @@ func initConfig() {
 func startServer(cmd *cobra.Command, args []string) {
 	mgr := repo.NewManager(*Configuration, *Logger)
 	mgr.Checkout()
-	server.Start()
+	srv := &server.ConfigServer{Configuration: *Configuration, Key: Key}
+	srv.Start()
 }

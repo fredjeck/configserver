@@ -61,7 +61,7 @@ func ReadFromPath(configurationRoot string) (*Config, error) {
 }
 
 type Config struct {
-	Key          string
+	Key          *[32]byte
 	LoadedFrom   string
 	Home         string
 	Repositories Repositories
