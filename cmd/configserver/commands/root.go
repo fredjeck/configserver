@@ -57,7 +57,7 @@ func initConfig() {
 }
 
 func startServer(cmd *cobra.Command, args []string) {
-	mgr := repo.NewRepositoryManger(*Configuration)
+	mgr := repo.NewRepositoryManger(*Configuration, *Logger)
 	mgr.Checkout()
 	time.Sleep(10 * time.Minute)
 }
