@@ -16,10 +16,13 @@ type RepositoryManager struct {
 
 const REPOSITORIES string = "repositories"
 
-func NewRepositoryManger(conf config.Config, logger zap.Logger) *RepositoryManager {
+// Creates a new repository manager
+func NewManager(conf config.Config, logger zap.Logger) *RepositoryManager {
 	return &RepositoryManager{configuration: conf, repositoriesRoot: path.Join(conf.Home, REPOSITORIES), logger: logger}
 }
 
+// Starts asynchroneously checking out the configured repositories
+// and maintains their local copy up to date based on the repository configuration
 func (mgr *RepositoryManager) Checkout() error {
 	if _, err := os.Stat(mgr.repositoriesRoot); os.IsNotExist(err) {
 		err = os.MkdirAll(mgr.repositoriesRoot, 0700)

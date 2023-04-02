@@ -1,12 +1,11 @@
 package commands
 
 import (
-	"time"
-
 	"github.com/fredjeck/configserver/pkg/config"
 	"github.com/fredjeck/configserver/pkg/encrypt"
 	"github.com/fredjeck/configserver/pkg/logging"
 	"github.com/fredjeck/configserver/pkg/repo"
+	"github.com/fredjeck/configserver/pkg/server"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -57,7 +56,7 @@ func initConfig() {
 }
 
 func startServer(cmd *cobra.Command, args []string) {
-	mgr := repo.NewRepositoryManger(*Configuration, *Logger)
+	mgr := repo.NewManager(*Configuration, *Logger)
 	mgr.Checkout()
-	time.Sleep(10 * time.Minute)
+	server.Start()
 }
