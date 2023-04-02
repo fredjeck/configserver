@@ -37,3 +37,8 @@ func (mgr *RepositoryManager) Checkout() error {
 	}
 	return nil
 }
+
+// Gets the file from repository at the specified path
+func (mgr RepositoryManager) Get(repository string, path string) ([]byte, error) {
+	return nil, nil
+}

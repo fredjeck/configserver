@@ -8,8 +8,12 @@ import (
 	"github.com/spf13/viper"
 )
 
-const ENV_CONFIGSERVER_HOME = "CONFIGSERVER_HOME"
-const DEFAULT_HOME string = "/var/run/configserver"
+const (
+	// Name of the environment variable pointing to the configuration file
+	ENV_CONFIGSERVER_HOME = "CONFIGSERVER_HOME"
+	// Default home directory used if CONFIGSERVER_HOME is not defined
+	DEFAULT_HOME string = "/var/run/configserver"
+)
 
 // Reads the configuration from the location pointed by the $CONFIGSERVER_HOME env variable.
 // If the variable is not defined, uses /var/run/configserver as a default.
@@ -61,7 +65,7 @@ func ReadFromPath(configurationRoot string) (*Config, error) {
 }
 
 type Config struct {
-	Key          *[32]byte
+	ListenOn     string
 	LoadedFrom   string
 	Home         string
 	Repositories Repositories
