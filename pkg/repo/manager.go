@@ -39,6 +39,11 @@ func (mgr *RepositoryManager) Checkout() error {
 }
 
 // Gets the file from repository at the specified path
-func (mgr RepositoryManager) Get(repository string, path string) ([]byte, error) {
-	return nil, nil
+func (mgr RepositoryManager) Get(repository string, target string) ([]byte, error) {
+
+	// TODO sanitize to avoid browsing filesystem
+	repositoryPath := path.Join(mgr.repositoriesRoot, repository, target)
+
+	return os.ReadFile(repositoryPath)
+
 }
