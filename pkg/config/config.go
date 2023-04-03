@@ -57,18 +57,24 @@ func ReadFromPath(configurationRoot string) (*Config, error) {
 		return nil, fmt.Errorf("error reading configserver.yaml from '%s': %s", root, err.Error())
 	}
 
-	conf := &Config{}
+	conf := &Config{
+		ListenOn:                    ":8090",
+		CacheEvicterIntervalSeconds: 10,
+		CacheStorageSeconds:         30,
+		Home:                        root,
+		LoadedFrom:                  path.Join(root, "configserver.yaml"),
+	}
 	v.Unmarshal(&conf)
-	conf.Home = root
-	conf.LoadedFrom = path.Join(root, "configserver.yaml")
 	return conf, nil
 }
 
 type Config struct {
-	ListenOn     string
-	LoadedFrom   string
-	Home         string
-	Repositories Repositories
+	ListenOn                    string
+	CacheEvicterIntervalSeconds int
+	CacheStorageSeconds         int
+	LoadedFrom                  string
+	Home                        string
+	Repositories                Repositories
 }
 
 func (config Config) EncryptionKeypath() string {

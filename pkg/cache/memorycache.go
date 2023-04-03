@@ -21,7 +21,6 @@ type MemoryCache struct {
 	waitGroup sync.WaitGroup
 	mutex     sync.RWMutex
 	entries   map[uint64]cacheEntry
-	logger    zap.Logger
 }
 
 var (
@@ -35,13 +34,13 @@ func NewMemoryCache(evicterRunInterval time.Duration, logger zap.Logger) *Memory
 	cache := &MemoryCache{
 		entries: make(map[uint64]cacheEntry),
 		stop:    make(chan struct{}),
-		logger:  logger,
 	}
 
 	cache.waitGroup.Add(1)
-	go func(cleanupInterval time.Duration) {
+	go func(interval time.Duration) {
 		defer cache.waitGroup.Done()
-		cache.startEvicter(cleanupInterval)
+		logger.Sugar().Infof("Memory cache created (cache evicter interval set to %d seconds)", interval)
+		cache.startEvicter(interval)
 	}(evicterRunInterval)
 
 	return cache
@@ -72,7 +71,6 @@ func (cache *MemoryCache) Flush() {
 			evicted++
 			delete(cache.entries, id)
 		}
-		cache.logger.Sugar().Infof("%d entries were evicted from cache", evicted)
 	}
 	cache.mutex.Unlock()
 }

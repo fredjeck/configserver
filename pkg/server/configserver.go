@@ -3,6 +3,7 @@ package server
 import (
 	"embed"
 	b64 "encoding/base64"
+	"errors"
 	"fmt"
 	"io/fs"
 	"io/ioutil"
@@ -10,7 +11,9 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/fredjeck/configserver/pkg/cache"
 	"github.com/fredjeck/configserver/pkg/config"
 	"github.com/fredjeck/configserver/pkg/encrypt"
 	"github.com/fredjeck/configserver/pkg/repo"
@@ -25,6 +28,7 @@ type ConfigServer struct {
 	key           *[32]byte
 	repositories  *repo.RepositoryManager
 	logger        zap.Logger
+	cache         *cache.MemoryCache
 }
 
 func New(configuration config.Config, key *[32]byte, logger zap.Logger) *ConfigServer {
@@ -32,6 +36,8 @@ func New(configuration config.Config, key *[32]byte, logger zap.Logger) *ConfigS
 		configuration: configuration,
 		key:           key,
 		repositories:  repo.NewManager(configuration, logger),
+		cache:         cache.NewMemoryCache(time.Duration(configuration.CacheEvicterIntervalSeconds), logger),
+		logger:        logger,
 	}
 }
 
@@ -75,6 +81,7 @@ func (server ConfigServer) Start() {
 	}
 }
 
+// TODO cleanup the mess
 func (s ConfigServer) gitRepoMiddleWare() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
@@ -89,14 +96,22 @@ func (s ConfigServer) gitRepoMiddleWare() func(http.Handler) http.Handler {
 				r := elements[2]
 				path := strings.Join(elements[3:], string(os.PathSeparator))
 
-				w.WriteHeader(http.StatusOK)
-				content, err := s.repositories.Get(r, path)
-				if err != nil {
-					w.WriteHeader(http.StatusBadRequest)
-					return
+				content, err := s.cache.Get(path)
+				if errors.Is(err, cache.ErrKeyNotInCache) {
+					content, err = s.repositories.Get(r, path)
+					if err != nil {
+						w.WriteHeader(http.StatusBadRequest)
+						return
+					}
+					eviction := time.Now().Add(time.Duration(s.configuration.CacheEvicterIntervalSeconds) * time.Second)
+					s.cache.Set(path, content, eviction)
+					s.logger.Sugar().Debugf("'%s' : '%s' retrieved from filesystem (cached until %s)", r, path, eviction)
+				} else {
+					s.logger.Sugar().Debugf("'%s' : '%s' retrieved from memory cache", r, path)
 				}
-				w.Write(content)
 
+				w.WriteHeader(http.StatusOK)
+				w.Write(content)
 				return
 			}
 
