@@ -1,8 +1,10 @@
 package repo
 
 import (
+	"errors"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/fredjeck/configserver/pkg/config"
 	"go.uber.org/zap"
@@ -15,6 +17,12 @@ type RepositoryManager struct {
 }
 
 const REPOSITORIES string = "repositories"
+
+var (
+	ErrRepositoryNotFound = errors.New("repository does not exist")
+	ErrFileNotFound       = errors.New("file not found in repository")
+	ErrInvalidPath        = errors.New("unsupported repository path")
+)
 
 // Creates a new repository manager
 func NewManager(conf config.Config, logger zap.Logger) *RepositoryManager {
@@ -40,10 +48,28 @@ func (mgr *RepositoryManager) Checkout() error {
 
 // Gets the file from repository at the specified path
 func (mgr RepositoryManager) Get(repository string, target string) ([]byte, error) {
+	found := false
+	for r := range mgr.configuration.Repositories {
+		if strings.EqualFold(mgr.configuration.Repositories[r].Name, repository) {
+			found = true
+		}
+	}
+	if !found {
+		return nil, ErrRepositoryNotFound
+	}
+
+	if strings.Contains(target, "."+string(os.PathSeparator)) || strings.Contains(target, ".."+string(os.PathSeparator)) {
+		return nil, ErrInvalidPath
+	}
 
 	// TODO sanitize to avoid browsing filesystem
 	repositoryPath := path.Join(mgr.repositoriesRoot, repository, target)
 
-	return os.ReadFile(repositoryPath)
+	content, error := os.ReadFile(repositoryPath)
+	if errors.Is(error, os.ErrNotExist) {
+		return nil, ErrFileNotFound
+	}
+
+	return content, nil
 
 }

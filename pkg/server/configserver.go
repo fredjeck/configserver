@@ -23,6 +23,9 @@ import (
 //go:embed resources
 var content embed.FS
 
+// Root URL from which git repositories are hosted
+const GIT_ROOT string = "/git"
+
 type ConfigServer struct {
 	configuration config.Config
 	key           *[32]byte
@@ -64,8 +67,7 @@ func (server ConfigServer) Start() {
 	server.repositories.Checkout()
 
 	router := http.NewServeMux()
-	middleware := server.gitRepoMiddleWare()
-	routerWithMiddleware := middleware(router)
+	middleware := server.createGitMiddleWare()
 
 	serverRoot, err := fs.Sub(content, "resources")
 	if err != nil {
@@ -75,48 +77,82 @@ func (server ConfigServer) Start() {
 	router.HandleFunc("/api/encrypt", server.encryptValue)
 	router.Handle("/", http.FileServer(http.FS(serverRoot)))
 
-	err = http.ListenAndServe(":8090", routerWithMiddleware)
+	err = http.ListenAndServe(":8090", middleware(router))
 	if err != nil {
 		fmt.Printf("Unexpected error: %v", err)
 	}
 }
 
-// TODO cleanup the mess
-func (s ConfigServer) gitRepoMiddleWare() func(http.Handler) http.Handler {
+// Writes the Git Middleware response
+func (s ConfigServer) writeResponse(status int, content []byte, started time.Time, w http.ResponseWriter, r http.Request) {
+	w.WriteHeader(status)
+	w.Write(content)
+	s.logDuration(started, r, status)
+}
+
+// Generaets an http like log
+func (s ConfigServer) logDuration(start time.Time, r http.Request, status int) {
+	elapsed := time.Since(start)
+	message := fmt.Sprintf("%s %s %d %s", r.Method, r.RequestURI, status, elapsed)
+	s.logger.Info(message, zap.String("request.method", r.Method), zap.String("request.uri", r.RequestURI), zap.Int("response.status", status), zap.Duration("request.elapsed", elapsed))
+}
+
+// Creates a middleware which intercepts requests retrieving files from the served GIT repositories
+// Expects the URL with the following format : GIT_ROOT/repository name/optional folder(s)/file name
+// Example : /git/repository/folder/file.yaml
+func (s ConfigServer) createGitMiddleWare() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			if strings.Contains(r.RequestURI, "/git") {
-				// handle
+			start := time.Now()
+
+			if r.RequestURI[0:4] == GIT_ROOT && r.Method == http.MethodGet {
+				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+
+				// element should at least contain ["", "git", "repository name", "file name"]
+				// the first empty element is caused by the leading slash
 				elements := strings.Split(r.RequestURI, "/")
 				if len(elements) < 4 {
-					w.WriteHeader(http.StatusBadRequest)
+					message := fmt.Sprintf("Invalid repository path '%s' expected format is '%s/repository name/optional folder/file", r.RequestURI, GIT_ROOT)
+					s.logger.Warn(message, zap.String("request.path", r.RequestURI))
+					s.writeResponse(http.StatusBadRequest, []byte(message), start, w, *r)
 					return
 				}
-
-				r := elements[2]
+				repository := elements[2]
 				path := strings.Join(elements[3:], string(os.PathSeparator))
 
 				content, err := s.cache.Get(path)
 				if errors.Is(err, cache.ErrKeyNotInCache) {
-					content, err = s.repositories.Get(r, path)
+					content, err = s.repositories.Get(repository, path)
 					if err != nil {
-						w.WriteHeader(http.StatusBadRequest)
+						message := fmt.Sprintf("'%s' file not found", path)
+						if errors.Is(err, repo.ErrRepositoryNotFound) {
+							message = fmt.Sprintf("'%s' repository does not exist", repository)
+						}
+						if errors.Is(err, repo.ErrFileNotFound) {
+							message = fmt.Sprintf("'%s' file does not exsists", path)
+						}
+						if errors.Is(err, repo.ErrInvalidPath) {
+							message = fmt.Sprintf("'%s' path is not valid or contains unsupported characters", path)
+						}
+
+						s.logger.Warn(message, zap.String("request.path", r.RequestURI))
+						s.writeResponse(http.StatusNotFound, []byte(message), start, w, *r)
 						return
 					}
-					eviction := time.Now().Add(time.Duration(s.configuration.CacheEvicterIntervalSeconds) * time.Second)
+					eviction := time.Now().Add(time.Duration(s.configuration.CacheStorageSeconds) * time.Second)
 					s.cache.Set(path, content, eviction)
-					s.logger.Sugar().Debugf("'%s' : '%s' retrieved from filesystem (cached until %s)", r, path, eviction)
+					s.logger.Sugar().Debugf("'%s' : '%s' retrieved from filesystem (cached until %s)", repository, path, eviction)
 				} else {
-					s.logger.Sugar().Debugf("'%s' : '%s' retrieved from memory cache", r, path)
+					s.logger.Sugar().Debugf("'%s' : '%s' retrieved from memory cache", repository, path)
 				}
 
-				w.WriteHeader(http.StatusOK)
-				w.Write(content)
+				s.writeResponse(http.StatusOK, []byte(content), start, w, *r)
 				return
 			}
-
 			// call next handler
 			next.ServeHTTP(w, r)
+			// Todo, find a solution to intercept the wrapped middlewares http statuses without interfering with ResponseWriter other interfaces
+			s.logDuration(start, *r, -1)
 		}
 		return http.HandlerFunc(fn)
 	}
