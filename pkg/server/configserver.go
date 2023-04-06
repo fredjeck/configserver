@@ -97,6 +97,50 @@ func (s ConfigServer) logDuration(start time.Time, r http.Request, status int) {
 	s.logger.Info(message, zap.String("request.method", r.Method), zap.String("request.uri", r.RequestURI), zap.Int("response.status", status), zap.Duration("request.elapsed", elapsed))
 }
 
+var (
+	ErrAuthRequired       = errors.New("authentication required")
+	ErrMissingCredentials = errors.New("missing credentials")
+	ErrUnauthorized       = errors.New("repository unauthorized")
+)
+
+func (s ConfigServer) ensureAuth(w http.ResponseWriter, r http.Request, repository string) (string, error) {
+	authorization := r.Header.Get("Authorization")
+	if len(authorization) == 0 {
+		return "", ErrAuthRequired
+	}
+
+	auth, err := b64.StdEncoding.DecodeString(strings.ReplaceAll(authorization, "Basic ", ""))
+	if err != nil {
+		return "", ErrMissingCredentials
+	}
+
+	credentials := strings.Split(string(auth), ":")
+	if len(credentials) != 2 {
+		return "", ErrMissingCredentials
+	}
+
+	pwd, err := b64.StdEncoding.DecodeString(credentials[1])
+	if err != nil {
+		return "", ErrUnauthorized
+	}
+
+	unmarshalled, error := encrypt.Decrypt(pwd, s.key)
+	if error != nil {
+		return "", ErrUnauthorized
+	}
+
+	secret := strings.Split(string(unmarshalled), ":")
+	if len(secret) != 2 {
+		return "", ErrUnauthorized
+	}
+
+	if secret[0] == repository && secret[1] == credentials[0] {
+		return secret[1], nil
+	}
+
+	return "", ErrUnauthorized
+}
+
 // Creates a middleware which intercepts requests retrieving files from the served GIT repositories
 // Expects the URL with the following format : GIT_ROOT/repository name/optional folder(s)/file name
 // Example : /git/repository/folder/file.yaml
@@ -119,6 +163,17 @@ func (s ConfigServer) createGitMiddleWare() func(http.Handler) http.Handler {
 				}
 				repository := elements[2]
 				path := strings.Join(elements[3:], string(os.PathSeparator))
+
+				_, err := s.ensureAuth(w, *r, repository)
+				if err != nil {
+					if errors.Is(err, ErrAuthRequired) {
+						w.Header().Add("WWW-Authenticate", "Basic realm=\"ConfigServer\"")
+						w.WriteHeader(http.StatusUnauthorized)
+						return
+					} else {
+						s.writeResponse(http.StatusUnauthorized, []byte(err.Error()), start, w, *r)
+					}
+				}
 
 				content, err := s.cache.Get(path)
 				if errors.Is(err, cache.ErrKeyNotInCache) {
