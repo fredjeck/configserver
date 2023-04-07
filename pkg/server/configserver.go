@@ -98,7 +98,7 @@ func (server *ConfigServer) Start() {
 // Writes the Git Middleware response
 func (server *ConfigServer) writeResponse(status int, content []byte, started time.Time, w http.ResponseWriter, r http.Request) {
 	w.WriteHeader(status)
-	w.Write(content)
+	_, _ = w.Write(content)
 	server.logDuration(started, r, status)
 }
 
