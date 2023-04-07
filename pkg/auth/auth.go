@@ -45,9 +45,9 @@ func UnmarshalClientSecret(clientSecret string, key *[32]byte) (*ClientSpec, err
 		return nil, err
 	}
 
-	secret, decryptionErr := encrypt.Decrypt(bytes, key)
-	if decryptionErr != nil {
-		return nil, decryptionErr
+	secret, err := encrypt.Decrypt(bytes, key)
+	if err != nil {
+		return nil, err
 	}
 
 	elements := strings.Split(string(secret), ClientSpecSeparator)
@@ -65,7 +65,7 @@ var (
 	ErrMalformedClientSecret = errors.New("malformed client secret")
 )
 
-// FromBasicAuth ensures basic auth is enabled on the inbout request and validates the ClientID and Client Secret
+// FromBasicAuth ensures basic auth is enabled on the inbound request and validates the ClientID and Client Secret
 func FromBasicAuth(r http.Request, key *[32]byte) (*ClientSpec, error) {
 	authorization := r.Header.Get("Authorization")
 	if len(authorization) == 0 {
@@ -82,8 +82,8 @@ func FromBasicAuth(r http.Request, key *[32]byte) (*ClientSpec, error) {
 		return nil, ErrMissingCredentials
 	}
 
-	spec, specErr := UnmarshalClientSecret(credentials[1], key)
-	if specErr != nil {
+	spec, err := UnmarshalClientSecret(credentials[1], key)
+	if err != nil {
 		return nil, ErrMalformedClientSecret
 	}
 
