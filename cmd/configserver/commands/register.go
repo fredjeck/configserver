@@ -23,12 +23,12 @@ func init() {
 }
 
 func registerClient(cmd *cobra.Command, _ []string) {
-	clientId, errClientId := cmd.Flags().GetString("clientid")
-	if len(clientId) == 0 || errClientId != nil {
+	clientId, err := cmd.Flags().GetString("clientid")
+	if len(clientId) == 0 || err != nil {
 		clientId = uuid.NewString()
 	}
-	repo, errRepo := cmd.Flags().GetString("repository")
-	if len(repo) == 0 || errRepo != nil {
+	repo, err := cmd.Flags().GetString("repository")
+	if len(repo) == 0 || err != nil {
 		Logger.Sugar().Fatal("Missing mandatory argument : repository")
 	}
 
