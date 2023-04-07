@@ -1,7 +1,6 @@
 package commands
 
 import (
-	b64 "encoding/base64"
 	"github.com/fredjeck/configserver/pkg/encrypt"
 	"github.com/spf13/cobra"
 )
@@ -24,9 +23,9 @@ func encryptValue(cmd *cobra.Command, _ []string) {
 		Logger.Sugar().Fatal("Missing mandatory argument : value")
 	}
 
-	enc, err := encrypt.Encrypt([]byte(value), Key)
-	if len(value) == 0 || err != nil {
+	enc, err := encrypt.EncryptToken([]byte(value), Key)
+	if err != nil {
 		Logger.Sugar().Fatalf("an error occured while encrypting the provided value: %s", err.Error())
 	}
-	Logger.Sugar().Infof("Encrypted token: {enc:%s}", b64.StdEncoding.EncodeToString(enc))
+	Logger.Sugar().Infof("Encrypted token: %s", enc)
 }

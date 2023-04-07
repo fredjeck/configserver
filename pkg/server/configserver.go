@@ -2,7 +2,6 @@ package server
 
 import (
 	"embed"
-	b64 "encoding/base64"
 	"errors"
 	"fmt"
 	"github.com/fredjeck/configserver/pkg/auth"
@@ -51,14 +50,13 @@ func (server *ConfigServer) encryptValue(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	ciphered, err := encrypt.Encrypt(value, server.key)
+	token, err := encrypt.EncryptToken(value, server.key)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	base := b64.StdEncoding.EncodeToString(ciphered[:])
-	_, err = w.Write([]byte(base))
+	_, err = w.Write([]byte(token))
 	if err != nil {
 		return
 	}

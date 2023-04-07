@@ -18,6 +18,7 @@ import (
 	"crypto/rand"
 	b64 "encoding/base64"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 )
@@ -109,6 +110,15 @@ func ReadEncryptionKey(keyFilePath string, createIfMissing bool) (*[32]byte, err
 
 	copy(key[:], decoded)
 	return &key, nil
+}
+
+// EncryptToken encrypts the provided text into a substitution token
+func EncryptToken(plaintext []byte, key *[32]byte) (string, error) {
+	enc, err := Encrypt(plaintext, key)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("{enc:%s}", b64.StdEncoding.EncodeToString(enc)), nil
 }
 
 // StoreEncryptionKey stores the encryption key at the provided location
