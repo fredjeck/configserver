@@ -5,8 +5,8 @@ import (
 	b64 "encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -45,7 +45,7 @@ func New(configuration config.Config, key *[32]byte, logger zap.Logger) *ConfigS
 }
 
 func (server ConfigServer) encryptValue(w http.ResponseWriter, req *http.Request) {
-	value, err := ioutil.ReadAll(req.Body)
+	value, err := io.ReadAll(req.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -84,17 +84,17 @@ func (server ConfigServer) Start() {
 }
 
 // Writes the Git Middleware response
-func (s ConfigServer) writeResponse(status int, content []byte, started time.Time, w http.ResponseWriter, r http.Request) {
+func (server ConfigServer) writeResponse(status int, content []byte, started time.Time, w http.ResponseWriter, r http.Request) {
 	w.WriteHeader(status)
 	w.Write(content)
-	s.logDuration(started, r, status)
+	server.logDuration(started, r, status)
 }
 
 // Generaets an http like log
-func (s ConfigServer) logDuration(start time.Time, r http.Request, status int) {
+func (server ConfigServer) logDuration(start time.Time, r http.Request, status int) {
 	elapsed := time.Since(start)
 	message := fmt.Sprintf("%s %s %d %s", r.Method, r.RequestURI, status, elapsed)
-	s.logger.Info(message, zap.String("request.method", r.Method), zap.String("request.uri", r.RequestURI), zap.Int("response.status", status), zap.Duration("request.elapsed", elapsed))
+	server.logger.Info(message, zap.String("request.method", r.Method), zap.String("request.uri", r.RequestURI), zap.Int("response.status", status), zap.Duration("request.elapsed", elapsed))
 }
 
 var (
@@ -103,7 +103,7 @@ var (
 	ErrUnauthorized       = errors.New("repository unauthorized")
 )
 
-func (s ConfigServer) ensureAuth(w http.ResponseWriter, r http.Request, repository string) (string, error) {
+func (server ConfigServer) ensureAuth(w http.ResponseWriter, r http.Request, repository string) (string, error) {
 	authorization := r.Header.Get("Authorization")
 	if len(authorization) == 0 {
 		return "", ErrAuthRequired
@@ -124,7 +124,7 @@ func (s ConfigServer) ensureAuth(w http.ResponseWriter, r http.Request, reposito
 		return "", ErrUnauthorized
 	}
 
-	unmarshalled, error := encrypt.Decrypt(pwd, s.key)
+	unmarshalled, error := encrypt.Decrypt(pwd, server.key)
 	if error != nil {
 		return "", ErrUnauthorized
 	}
@@ -144,7 +144,7 @@ func (s ConfigServer) ensureAuth(w http.ResponseWriter, r http.Request, reposito
 // Creates a middleware which intercepts requests retrieving files from the served GIT repositories
 // Expects the URL with the following format : GIT_ROOT/repository name/optional folder(s)/file name
 // Example : /git/repository/folder/file.yaml
-func (s ConfigServer) createGitMiddleWare() func(http.Handler) http.Handler {
+func (server ConfigServer) createGitMiddleWare() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
@@ -157,27 +157,27 @@ func (s ConfigServer) createGitMiddleWare() func(http.Handler) http.Handler {
 				elements := strings.Split(r.RequestURI, "/")
 				if len(elements) < 4 {
 					message := fmt.Sprintf("Invalid repository path '%s' expected format is '%s/repository name/optional folder/file", r.RequestURI, GIT_ROOT)
-					s.logger.Warn(message, zap.String("request.path", r.RequestURI))
-					s.writeResponse(http.StatusBadRequest, []byte(message), start, w, *r)
+					server.logger.Warn(message, zap.String("request.path", r.RequestURI))
+					server.writeResponse(http.StatusBadRequest, []byte(message), start, w, *r)
 					return
 				}
 				repository := elements[2]
 				path := strings.Join(elements[3:], string(os.PathSeparator))
 
-				_, err := s.ensureAuth(w, *r, repository)
+				_, err := server.ensureAuth(w, *r, repository)
 				if err != nil {
 					if errors.Is(err, ErrAuthRequired) {
 						w.Header().Add("WWW-Authenticate", "Basic realm=\"ConfigServer\"")
 						w.WriteHeader(http.StatusUnauthorized)
 						return
 					} else {
-						s.writeResponse(http.StatusUnauthorized, []byte(err.Error()), start, w, *r)
+						server.writeResponse(http.StatusUnauthorized, []byte(err.Error()), start, w, *r)
 					}
 				}
 
-				content, err := s.cache.Get(path)
+				content, err := server.cache.Get(path)
 				if errors.Is(err, cache.ErrKeyNotInCache) {
-					content, err = s.repositories.Get(repository, path)
+					content, err = server.repositories.Get(repository, path)
 					if err != nil {
 						message := fmt.Sprintf("'%s' file not found", path)
 						if errors.Is(err, repo.ErrRepositoryNotFound) {
@@ -190,24 +190,24 @@ func (s ConfigServer) createGitMiddleWare() func(http.Handler) http.Handler {
 							message = fmt.Sprintf("'%s' path is not valid or contains unsupported characters", path)
 						}
 
-						s.logger.Warn(message, zap.String("request.path", r.RequestURI))
-						s.writeResponse(http.StatusNotFound, []byte(message), start, w, *r)
+						server.logger.Warn(message, zap.String("request.path", r.RequestURI))
+						server.writeResponse(http.StatusNotFound, []byte(message), start, w, *r)
 						return
 					}
-					eviction := time.Now().Add(time.Duration(s.configuration.CacheStorageSeconds) * time.Second)
-					s.cache.Set(path, content, eviction)
-					s.logger.Sugar().Debugf("'%s' : '%s' retrieved from filesystem (cached until %s)", repository, path, eviction)
+					eviction := time.Now().Add(time.Duration(server.configuration.CacheStorageSeconds) * time.Second)
+					server.cache.Set(path, content, eviction)
+					server.logger.Sugar().Debugf("'%s' : '%s' retrieved from filesystem (cached until %s)", repository, path, eviction)
 				} else {
-					s.logger.Sugar().Debugf("'%s' : '%s' retrieved from memory cache", repository, path)
+					server.logger.Sugar().Debugf("'%s' : '%s' retrieved from memory cache", repository, path)
 				}
 
-				s.writeResponse(http.StatusOK, []byte(content), start, w, *r)
+				server.writeResponse(http.StatusOK, []byte(content), start, w, *r)
 				return
 			}
 			// call next handler
 			next.ServeHTTP(w, r)
 			// Todo, find a solution to intercept the wrapped middlewares http statuses without interfering with ResponseWriter other interfaces
-			s.logDuration(start, *r, -1)
+			server.logDuration(start, *r, -1)
 		}
 		return http.HandlerFunc(fn)
 	}

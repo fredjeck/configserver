@@ -5,12 +5,6 @@ type Repository struct {
 	Url             string
 	Token           string
 	RefreshInterval int
-	Grants          Grants
+	Clients         []string
 }
 type Repositories []Repository
-
-type Grant struct {
-	ClientId     string
-	ClientSecret string
-}
-type Grants []Grant
