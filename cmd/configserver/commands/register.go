@@ -32,7 +32,9 @@ func registerClient(cmd *cobra.Command, _ []string) {
 		Logger.Sugar().Fatal("Missing mandatory argument : repository")
 	}
 
-	secret, err := auth.NewClientSecret(clientId, repo, Key)
+	spec := auth.NewClientSpec(clientId, repo)
+
+	secret, err := spec.ClientSecret(Key)
 	if err != nil {
 		Logger.Sugar().Fatalf("Unable to generate client secret for %s : %s", clientId, err.Error())
 	}

@@ -5,6 +5,7 @@ import (
 	b64 "encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/fredjeck/configserver/pkg/auth"
 	"io"
 	"io/fs"
 	"log"
@@ -51,15 +52,17 @@ func (server ConfigServer) encryptValue(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	ciphered, error := encrypt.Encrypt(value, server.key)
-	if error != nil {
+	ciphered, err := encrypt.Encrypt(value, server.key)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	base := b64.StdEncoding.EncodeToString(ciphered[:])
-	w.Write([]byte(base))
-
+	_, err = w.Write([]byte(base))
+	if err != nil {
+		return
+	}
 }
 
 func (server ConfigServer) Start() {
@@ -97,50 +100,6 @@ func (server ConfigServer) logDuration(start time.Time, r http.Request, status i
 	server.logger.Info(message, zap.String("request.method", r.Method), zap.String("request.uri", r.RequestURI), zap.Int("response.status", status), zap.Duration("request.elapsed", elapsed))
 }
 
-var (
-	ErrAuthRequired       = errors.New("authentication required")
-	ErrMissingCredentials = errors.New("missing credentials")
-	ErrUnauthorized       = errors.New("repository unauthorized")
-)
-
-func (server ConfigServer) ensureAuth(w http.ResponseWriter, r http.Request, repository string) (string, error) {
-	authorization := r.Header.Get("Authorization")
-	if len(authorization) == 0 {
-		return "", ErrAuthRequired
-	}
-
-	auth, err := b64.StdEncoding.DecodeString(strings.ReplaceAll(authorization, "Basic ", ""))
-	if err != nil {
-		return "", ErrMissingCredentials
-	}
-
-	credentials := strings.Split(string(auth), ":")
-	if len(credentials) != 2 {
-		return "", ErrMissingCredentials
-	}
-
-	pwd, err := b64.StdEncoding.DecodeString(credentials[1])
-	if err != nil {
-		return "", ErrUnauthorized
-	}
-
-	unmarshalled, error := encrypt.Decrypt(pwd, server.key)
-	if error != nil {
-		return "", ErrUnauthorized
-	}
-
-	secret := strings.Split(string(unmarshalled), ":")
-	if len(secret) != 2 {
-		return "", ErrUnauthorized
-	}
-
-	if secret[0] == repository && secret[1] == credentials[0] {
-		return secret[1], nil
-	}
-
-	return "", ErrUnauthorized
-}
-
 // Creates a middleware which intercepts requests retrieving files from the served GIT repositories
 // Expects the URL with the following format : GIT_ROOT/repository name/optional folder(s)/file name
 // Example : /git/repository/folder/file.yaml
@@ -164,15 +123,19 @@ func (server ConfigServer) createGitMiddleWare() func(http.Handler) http.Handler
 				repository := elements[2]
 				path := strings.Join(elements[3:], string(os.PathSeparator))
 
-				_, err := server.ensureAuth(w, *r, repository)
+				spec, err := auth.FromBasicAuth(*r, server.key)
 				if err != nil {
-					if errors.Is(err, ErrAuthRequired) {
+					if errors.Is(err, auth.ErrAuthRequired) {
 						w.Header().Add("WWW-Authenticate", "Basic realm=\"ConfigServer\"")
 						w.WriteHeader(http.StatusUnauthorized)
 						return
 					} else {
 						server.writeResponse(http.StatusUnauthorized, []byte(err.Error()), start, w, *r)
 					}
+				}
+
+				if spec.Repository != repository {
+					server.writeResponse(http.StatusUnauthorized, []byte(err.Error()), start, w, *r)
 				}
 
 				content, err := server.cache.Get(path)
