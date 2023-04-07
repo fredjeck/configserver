@@ -38,7 +38,7 @@ func NewClientSpec(clientId string, repository string) *ClientSpec {
 	return &ClientSpec{Repository: repository, ClientId: clientId}
 }
 
-// UnmarshalClientSpec unmarhaslls a ClientSpec out of a client secret
+// UnmarshalClientSecret unmarshalls a ClientSpec out of a client secret
 func UnmarshalClientSecret(clientSecret string, key *[32]byte) (*ClientSpec, error) {
 	bytes, err := b64.StdEncoding.DecodeString(clientSecret)
 	if err != nil {
