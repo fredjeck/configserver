@@ -39,7 +39,7 @@ func New(configuration config.Config, key *[32]byte, logger zap.Logger) *ConfigS
 		configuration: configuration,
 		key:           key,
 		repositories:  repo.NewManager(configuration, logger),
-		cache:         cache.NewMemoryCache(time.Duration(configuration.CacheEvicterIntervalSeconds), logger),
+		cache:         cache.NewMemoryCache(time.Duration(configuration.CacheEvictorIntervalSeconds), logger),
 		logger:        logger,
 	}
 }

@@ -22,7 +22,7 @@ func init() {
 	RootCommand.AddCommand(RegisterClientCommand)
 }
 
-func registerClient(cmd *cobra.Command, args []string) {
+func registerClient(cmd *cobra.Command, _ []string) {
 	clientId, errClientId := cmd.Flags().GetString("clientid")
 	if len(clientId) == 0 || errClientId != nil {
 		clientId = uuid.NewString()

@@ -9,31 +9,31 @@ import (
 )
 
 const (
-	// Name of the environment variable pointing to the configuration file
-	ENV_CONFIGSERVER_HOME = "CONFIGSERVER_HOME"
-	// Default home directory used if CONFIGSERVER_HOME is not defined
-	DEFAULT_HOME string = "/var/run/configserver"
+	// EnvConfigserverHome defines the name of the environment variable pointing to the configuration file
+	EnvConfigserverHome = "CONFIGSERVER_HOME"
+	// DefaultHome defines the default home directory used when the CONFIGSERVER_HOME environment variable is not defined
+	DefaultHome string = "/var/run/configserver"
 )
 
-// Reads the configuration from the location pointed by the $CONFIGSERVER_HOME env variable.
+// Read loads the configuration from the location pointed by the $CONFIGSERVER_HOME env variable.
 // If the variable is not defined, uses /var/run/configserver as a default.
 func Read() (*Config, error) {
-	root := os.Getenv(ENV_CONFIGSERVER_HOME)
+	root := os.Getenv(EnvConfigserverHome)
 	if len(root) == 0 {
-		root = DEFAULT_HOME
+		root = DefaultHome
 	}
 	return ReadFromPath(root)
 }
 
-// Reads the configuration from the location pointed by the provided configurationRoot parameter.
-// If this parameter is omited, tries to locate the configuration using the $CONFIGSERVER_HOME env variable.
+// ReadFromPath loads the configuration from the location pointed by the provided configurationRoot parameter.
+// If this parameter is omitted, tries to locate the configuration using the $CONFIGSERVER_HOME env variable.
 // If the variable is not defined, uses /var/run/configserver as a default.
 func ReadFromPath(configurationRoot string) (*Config, error) {
 	root := configurationRoot
 	if len(root) == 0 {
-		root = os.Getenv(ENV_CONFIGSERVER_HOME)
+		root = os.Getenv(EnvConfigserverHome)
 		if len(root) == 0 {
-			root = DEFAULT_HOME
+			root = DefaultHome
 		}
 	}
 
@@ -59,24 +59,28 @@ func ReadFromPath(configurationRoot string) (*Config, error) {
 
 	conf := &Config{
 		ListenOn:                    ":8090",
-		CacheEvicterIntervalSeconds: 10,
+		CacheEvictorIntervalSeconds: 10,
 		CacheStorageSeconds:         30,
 		Home:                        root,
 		LoadedFrom:                  path.Join(root, "configserver.yaml"),
 	}
-	v.Unmarshal(&conf)
+	err = v.Unmarshal(&conf)
+	if err != nil {
+		return nil, fmt.Errorf("error reading configserver.yaml from '%s': %s", root, err.Error())
+	}
 	return conf, nil
 }
 
 type Config struct {
 	ListenOn                    string
-	CacheEvicterIntervalSeconds int
+	CacheEvictorIntervalSeconds int
 	CacheStorageSeconds         int
 	LoadedFrom                  string
 	Home                        string
 	Repositories                Repositories
 }
 
-func (config Config) EncryptionKeypath() string {
+// EncryptionKeyPath returns the path to the location of the encryption.key file
+func (config Config) EncryptionKeyPath() string {
 	return path.Join(config.Home, "encryption.key")
 }

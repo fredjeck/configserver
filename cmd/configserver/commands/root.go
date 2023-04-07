@@ -48,13 +48,13 @@ func initConfig() {
 
 	Logger.Sugar().Infof("Configuration loaded from '%s'", Configuration.LoadedFrom)
 
-	Key, err = encrypt.ReadEncryptionKey(Configuration.EncryptionKeypath(), true)
+	Key, err = encrypt.ReadEncryptionKey(Configuration.EncryptionKeyPath(), true)
 	if err != nil {
 		Logger.Sugar().Fatal(err)
 	}
 }
 
-func startServer(cmd *cobra.Command, args []string) {
+func startServer(_ *cobra.Command, _ []string) {
 	srv := server.New(*Configuration, Key, *Logger)
 	srv.Start()
 }

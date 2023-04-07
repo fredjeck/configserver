@@ -22,7 +22,7 @@ func init() {
 	RootCommand.AddCommand(KeygenCommand)
 }
 
-func keygen(cmd *cobra.Command, args []string) {
+func keygen(cmd *cobra.Command, _ []string) {
 	Logger.Sugar().Info(`If an encryption key exists and is in use, running keygen will overwrite any existing key - rendering currently served configuration useless.
 You will need to rehash any encrypted sensitive values in your configuration files`)
 
@@ -42,7 +42,7 @@ You will need to rehash any encrypted sensitive values in your configuration fil
 		return
 	}
 
-	err = encrypt.StoreEncryptionKey(key, Configuration.EncryptionKeypath())
+	err = encrypt.StoreEncryptionKey(key, Configuration.EncryptionKeyPath())
 	if err != nil {
 		Logger.Sugar().Errorf("Cannot create keyfile: %s", err.Error())
 	}

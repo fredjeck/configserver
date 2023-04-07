@@ -26,7 +26,7 @@ func TestReadFromPath(t *testing.T) {
 
 func TestReadFromEnvironment(t *testing.T) {
 	assets := path.Join(assetsPath(), "valid")
-	os.Setenv(ENV_CONFIGSERVER_HOME, assets)
+	_ = os.Setenv(EnvConfigserverHome, assets)
 	var source string
 	config, err := ReadFromPath(source)
 	if err != nil {

@@ -14,7 +14,7 @@ type cacheEntry struct {
 	expireAtTimestamp int64
 }
 
-// A basic (but thread safe) memory cache
+// MemoryCache is a basic (but thread safe) memory cache
 type MemoryCache struct {
 	stop chan struct{}
 
@@ -24,13 +24,12 @@ type MemoryCache struct {
 }
 
 var (
-	// Error thrown when a key cannot be found
 	ErrKeyNotInCache = errors.New("the provided key could not be found in the memory cache")
 )
 
-// Instantiates a new memory cache which automatically evicts entries after the given retention period
-// evicterRunInterval controls the interval at which the cache evicter runs
-func NewMemoryCache(evicterRunInterval time.Duration, logger zap.Logger) *MemoryCache {
+// NewMemoryCache Instantiates a new memory cache which automatically evicts entries after the given retention period
+// evictorRunInterval controls the interval at which the cache evictor runs
+func NewMemoryCache(evictorRunInterval time.Duration, logger zap.Logger) *MemoryCache {
 	cache := &MemoryCache{
 		entries: make(map[uint64]cacheEntry),
 		stop:    make(chan struct{}),
@@ -39,16 +38,16 @@ func NewMemoryCache(evicterRunInterval time.Duration, logger zap.Logger) *Memory
 	cache.waitGroup.Add(1)
 	go func(interval time.Duration) {
 		defer cache.waitGroup.Done()
-		logger.Sugar().Infof("Memory cache created (cache evicter interval set to %d seconds)", interval)
-		cache.startEvicter(interval)
-	}(evicterRunInterval)
+		logger.Sugar().Infof("Memory cache created (cache evictor interval set to %d seconds)", interval)
+		cache.startEvictor(interval)
+	}(evictorRunInterval)
 
 	return cache
 }
 
-// Warning : This function must be called witin a goroutine as it will never return until the stop channel is used.
+// Warning : This function must be called within a goroutine as it will never return until the stop channel is used.
 // Starts the cache eviction process
-func (cache *MemoryCache) startEvicter(interval time.Duration) {
+func (cache *MemoryCache) startEvictor(interval time.Duration) {
 	t := time.NewTicker(interval)
 	defer t.Stop()
 
@@ -62,7 +61,7 @@ func (cache *MemoryCache) startEvicter(interval time.Duration) {
 	}
 }
 
-// Forces the eviction of outdated entries
+// Flush forces the eviction of outdated entries
 func (cache *MemoryCache) Flush() {
 	cache.mutex.Lock()
 	evicted := 0
@@ -75,24 +74,24 @@ func (cache *MemoryCache) Flush() {
 	cache.mutex.Unlock()
 }
 
-// Stops the cache evicter process keeping entries forever in memory
+// Stop halts the cache evictor process keeping entries forever in memory
 func (cache *MemoryCache) Stop() {
 	close(cache.stop)
 	cache.waitGroup.Wait()
 }
 
-// Updates the value value for the provided key and keeps it in the cache until the provided eviction time is reached
-func (cache *MemoryCache) Set(key string, content []byte, eviction time.Time) {
+// Set stores the value for the provided key in the cache until the expiry time is reached
+func (cache *MemoryCache) Set(key string, content []byte, expiration time.Time) {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 
 	cache.entries[createHash(key)] = cacheEntry{
 		content:           content,
-		expireAtTimestamp: eviction.Unix(),
+		expireAtTimestamp: expiration.Unix(),
 	}
 }
 
-// Gets the value stored for the provided key or returns ErrKeyNotInCache if the key was not found
+// Get retrieves the value stored for the provided key or returns ErrKeyNotInCache if the key was not found
 func (cache *MemoryCache) Get(key string) ([]byte, error) {
 	cache.mutex.RLock()
 	defer cache.mutex.RUnlock()
@@ -105,7 +104,7 @@ func (cache *MemoryCache) Get(key string) ([]byte, error) {
 	return entry.content, nil
 }
 
-// Remove the value stored for the provided key
+// Remove deletes the value stored for the provided key
 func (cache *MemoryCache) Remove(key string) {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
@@ -113,9 +112,9 @@ func (cache *MemoryCache) Remove(key string) {
 	delete(cache.entries, createHash(key))
 }
 
-// Creates a has for the provided key
-func createHash(path string) uint64 {
+// Creates a hash for the provided key
+func createHash(key string) uint64 {
 	h := fnv.New64()
-	h.Write([]byte(path))
+	_, _ = h.Write([]byte(key))
 	return h.Sum64()
 }

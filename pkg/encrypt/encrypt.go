@@ -9,7 +9,7 @@
 // You should have received a copy of the CC0 Public Domain Dedication along
 // with this software. If not, see // <http://creativecommons.org/publicdomain/zero/1.0/>.
 
-// Provides symmetric authenticated encryption using 256-bit AES-GCM with a random nonce.
+// Package encrypt symmetric authenticated encryption using 256-bit AES-GCM with a random nonce.
 package encrypt
 
 import (
@@ -81,14 +81,17 @@ func Decrypt(ciphertext []byte, key *[32]byte) (plaintext []byte, err error) {
 	)
 }
 
-// Reads the encryption key stored at the provided location.
+// ReadEncryptionKey reads the encryption key stored at the provided location.
 // If createIfMissing is set to true, this function will attempt to create a new key if the file cannot be found
 func ReadEncryptionKey(keyFilePath string, createIfMissing bool) (*[32]byte, error) {
 	key := [32]byte{}
 
 	if _, err := os.Stat(keyFilePath); os.IsNotExist(err) {
 		if createIfMissing {
-			StoreEncryptionKey(NewEncryptionKey(), keyFilePath)
+			err := StoreEncryptionKey(NewEncryptionKey(), keyFilePath)
+			if err != nil {
+				return nil, err
+			}
 		} else {
 			return nil, err
 		}
@@ -108,7 +111,7 @@ func ReadEncryptionKey(keyFilePath string, createIfMissing bool) (*[32]byte, err
 	return &key, nil
 }
 
-// Stores the encryption key at the provided location
+// StoreEncryptionKey stores the encryption key at the provided location
 // Encryption keys are stored base 64 encoded
 func StoreEncryptionKey(key *[32]byte, keyFilePath string) error {
 	encoded := b64.StdEncoding.EncodeToString(key[:])
