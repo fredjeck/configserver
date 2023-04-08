@@ -11,10 +11,10 @@ import (
 	"go.uber.org/zap"
 )
 
-// Using the provided repository configuration periodically pulls the repository
+// NewWatcher uses the provided repository configuration to periodically pulls the repository
 // to the path pointed by localPath.
 // If and error occurs, provides a detailed output in the logs
-func Watch(repository config.Repository, localPath string, logger zap.Logger) {
+func NewWatcher(repository config.Repository, localPath string, logger zap.Logger) {
 
 	log := logger.With(zap.String("repository.name", repository.Name)).With(zap.String("repository.url", repository.Url)).With(zap.String("repository.localPath", localPath))
 	for {
@@ -23,7 +23,11 @@ func Watch(repository config.Repository, localPath string, logger zap.Logger) {
 		workspace, err := git.PlainOpen(localPath)
 		if err != nil {
 			log.Sugar().Infof("no local copy of '%s' was found... cloning", repository.Name)
-			os.MkdirAll(localPath, 0700)
+			err := os.MkdirAll(localPath, 0700)
+			if err != nil {
+				log.Sugar().Errorf("an error occured while preparing %s for checkout: %s", localPath, err.Error())
+				return
+			}
 			_, err = git.PlainClone(localPath, false, &git.CloneOptions{
 				URL:      repository.Url,
 				Progress: os.Stdout,

@@ -11,12 +11,12 @@ import (
 )
 
 type RepositoryManager struct {
-	configuration    config.Config
+	repositories     config.Repositories
 	repositoriesRoot string
 	logger           zap.Logger
 }
 
-const REPOSITORIES string = "repositories"
+const RepositoriesFolder string = "repositories"
 
 var (
 	ErrRepositoryNotFound = errors.New("repository does not exist")
@@ -24,12 +24,12 @@ var (
 	ErrInvalidPath        = errors.New("unsupported repository path")
 )
 
-// Creates a new repository manager
+// NewManager creates a new repository manager
 func NewManager(conf config.Config, logger zap.Logger) *RepositoryManager {
-	return &RepositoryManager{configuration: conf, repositoriesRoot: path.Join(conf.Home, REPOSITORIES), logger: logger}
+	return &RepositoryManager{repositories: conf.Repositories, repositoriesRoot: path.Join(conf.Home, RepositoriesFolder), logger: logger}
 }
 
-// Starts asynchroneously checking out the configured repositories
+// Checkout starts asynchronously checking out the configured repositories
 // and maintains their local copy up to date based on the repository configuration
 func (mgr *RepositoryManager) Checkout() error {
 	if _, err := os.Stat(mgr.repositoriesRoot); os.IsNotExist(err) {
@@ -39,18 +39,18 @@ func (mgr *RepositoryManager) Checkout() error {
 		}
 	}
 
-	for _, repository := range mgr.configuration.Repositories {
+	for _, repository := range mgr.repositories {
 		repositoryPath := path.Join(mgr.repositoriesRoot, repository.Name)
-		go Watch(repository, repositoryPath, mgr.logger)
+		go NewWatcher(repository, repositoryPath, mgr.logger)
 	}
 	return nil
 }
 
-// Gets the file from repository at the specified path
-func (mgr RepositoryManager) Get(repository string, target string) ([]byte, error) {
+// Get retrieves the file from repository at the specified path
+func (mgr *RepositoryManager) Get(repository string, target string) ([]byte, error) {
 	found := false
-	for r := range mgr.configuration.Repositories {
-		if strings.EqualFold(mgr.configuration.Repositories[r].Name, repository) {
+	for r := range mgr.repositories {
+		if strings.EqualFold(mgr.repositories[r].Name, repository) {
 			found = true
 		}
 	}
@@ -65,11 +65,10 @@ func (mgr RepositoryManager) Get(repository string, target string) ([]byte, erro
 	// TODO sanitize to avoid browsing filesystem
 	repositoryPath := path.Join(mgr.repositoriesRoot, repository, target)
 
-	content, error := os.ReadFile(repositoryPath)
-	if errors.Is(error, os.ErrNotExist) {
+	content, err := os.ReadFile(repositoryPath)
+	if errors.Is(err, os.ErrNotExist) {
 		return nil, ErrFileNotFound
 	}
 
 	return content, nil
-
 }

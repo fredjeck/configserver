@@ -76,6 +76,7 @@ func (server *ConfigServer) Start() {
 
 	router := http.NewServeMux()
 	middleware := server.createGitMiddleWare()
+	loggingMiddleware := RequestLoggingMiddleware(server.logger)
 
 	serverRoot, err := fs.Sub(content, "resources")
 	if err != nil {
@@ -86,7 +87,7 @@ func (server *ConfigServer) Start() {
 	router.HandleFunc("/api/encrypt", server.encryptValue)
 	router.Handle("/", http.FileServer(http.FS(serverRoot)))
 
-	err = http.ListenAndServe(":8090", middleware(router))
+	err = http.ListenAndServe(":8090", loggingMiddleware(middleware(router)))
 	if err != nil {
 		server.logger.Sugar().Fatal("error starting configserver:", err.Error())
 		return
@@ -94,21 +95,12 @@ func (server *ConfigServer) Start() {
 }
 
 // Writes the Git Middleware response
-func (server *ConfigServer) writeResponse(status int, content []byte, started time.Time, w http.ResponseWriter, r http.Request) {
+func (server *ConfigServer) writeResponse(status int, content []byte, w http.ResponseWriter) {
 	w.WriteHeader(status)
 	_, _ = w.Write(content)
-	server.logDuration(started, r, status)
-}
-
-// Generates an http like log
-func (server *ConfigServer) logDuration(start time.Time, r http.Request, status int) {
-	elapsed := time.Since(start)
-	message := fmt.Sprintf("%s %s %d %s", r.Method, r.RequestURI, status, elapsed)
-	server.logger.Info(message, zap.String("request.method", r.Method), zap.String("request.uri", r.RequestURI), zap.Int("response.status", status), zap.Duration("request.elapsed", elapsed))
 }
 
 func (server *ConfigServer) processGitRepoRequest(w http.ResponseWriter, r *http.Request) {
-	start := time.Now()
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
 	// element should at least contain ["", "git", "repository name", "file name"]
@@ -117,7 +109,7 @@ func (server *ConfigServer) processGitRepoRequest(w http.ResponseWriter, r *http
 	if len(elements) < 4 {
 		message := fmt.Sprintf("Invalid repository path '%s' expected format is '%s/repository name/optional folder/file", r.RequestURI, GitUrlPrefix)
 		server.logger.Warn(message, zap.String("request.path", r.RequestURI))
-		server.writeResponse(http.StatusBadRequest, []byte(message), start, w, *r)
+		server.writeResponse(http.StatusBadRequest, []byte(message), w)
 		return
 	}
 	repository := elements[2]
@@ -130,12 +122,12 @@ func (server *ConfigServer) processGitRepoRequest(w http.ResponseWriter, r *http
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		} else {
-			server.writeResponse(http.StatusUnauthorized, []byte(err.Error()), start, w, *r)
+			server.writeResponse(http.StatusUnauthorized, []byte(err.Error()), w)
 		}
 	}
 
 	if spec.Repository != repository {
-		server.writeResponse(http.StatusUnauthorized, []byte(err.Error()), start, w, *r)
+		server.writeResponse(http.StatusUnauthorized, []byte(err.Error()), w)
 	}
 
 	content, err := server.cache.Get(path)
@@ -154,7 +146,7 @@ func (server *ConfigServer) processGitRepoRequest(w http.ResponseWriter, r *http
 			}
 
 			server.logger.Warn(message, zap.String("request.path", r.RequestURI))
-			server.writeResponse(http.StatusNotFound, []byte(message), start, w, *r)
+			server.writeResponse(http.StatusNotFound, []byte(message), w)
 			return
 		}
 		eviction := time.Now().Add(time.Duration(server.configuration.CacheStorageSeconds) * time.Second)
@@ -164,7 +156,7 @@ func (server *ConfigServer) processGitRepoRequest(w http.ResponseWriter, r *http
 		server.logger.Sugar().Debugf("'%s' : '%s' retrieved from memory cache", repository, path)
 	}
 
-	server.writeResponse(http.StatusOK, []byte(content), start, w, *r)
+	server.writeResponse(http.StatusOK, content, w)
 	return
 }
 
@@ -174,16 +166,12 @@ func (server *ConfigServer) processGitRepoRequest(w http.ResponseWriter, r *http
 func (server *ConfigServer) createGitMiddleWare() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			start := time.Now()
-
 			if r.RequestURI[0:4] == GitUrlPrefix && r.Method == http.MethodGet {
 				server.processGitRepoRequest(w, r)
 				return
 			}
 			// call next handler
 			next.ServeHTTP(w, r)
-			// Todo, find a solution to intercept the wrapped middlewares http statuses without interfering with ResponseWriter other interfaces
-			server.logDuration(start, *r, -1)
 		}
 		return http.HandlerFunc(fn)
 	}
