@@ -78,6 +78,51 @@ func (server *ConfigServer) listRepositories(w http.ResponseWriter, req *http.Re
 	w.Write(values)
 }
 
+type RegisterClientRequest struct {
+	ClientId     string
+	Repositories []string
+}
+
+type RegisterClientResponse struct {
+	ClientId     string
+	ClientSecret string
+}
+
+func (server *ConfigServer) registerClient(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	var registerRequest RegisterClientRequest
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	err = json.Unmarshal(body, &registerRequest)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	spec := auth.NewClientSpec(registerRequest.ClientId, registerRequest.Repositories)
+	secret, err := spec.ClientSecret(server.key)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	w.Header().Add("Content-Type", "application/json")
+	resp := &RegisterClientResponse{ClientId: registerRequest.ClientId, ClientSecret: secret}
+	values, err := json.Marshal(resp)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write(values)
+
+}
+
 // Start starts the configserver
 // - Enables the repository manager to pull changes from configured repositories
 // - Start serving hosted repositories request
@@ -102,6 +147,7 @@ func (server *ConfigServer) Start() {
 
 	router.HandleFunc("/api/encrypt", server.encryptValue)
 	router.HandleFunc("/api/repositories", server.listRepositories)
+	router.HandleFunc("/api/register", server.registerClient)
 	router.Handle("/", http.FileServer(http.FS(serverRoot)))
 
 	err = http.ListenAndServe(":8090", loggingMiddleware(middleware(router)))
