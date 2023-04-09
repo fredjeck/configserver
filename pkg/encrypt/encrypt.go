@@ -112,8 +112,8 @@ func ReadEncryptionKey(keyFilePath string, createIfMissing bool) (*[32]byte, err
 	return &key, nil
 }
 
-// EncryptToken encrypts the provided text into a substitution token
-func EncryptToken(plaintext []byte, key *[32]byte) (string, error) {
+// NewEncryptedToken encrypts the provided text into a substitution token
+func NewEncryptedToken(plaintext []byte, key *[32]byte) (string, error) {
 	enc, err := Encrypt(plaintext, key)
 	if err != nil {
 		return "", err

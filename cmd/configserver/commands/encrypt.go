@@ -23,7 +23,7 @@ func encryptValue(cmd *cobra.Command, _ []string) {
 		Logger.Sugar().Fatal("Missing mandatory argument : value")
 	}
 
-	enc, err := encrypt.EncryptToken([]byte(value), Key)
+	enc, err := encrypt.NewEncryptedToken([]byte(value), Key)
 	if err != nil {
 		Logger.Sugar().Fatalf("an error occured while encrypting the provided value: %s", err.Error())
 	}
