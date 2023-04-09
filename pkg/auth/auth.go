@@ -9,8 +9,8 @@ import (
 )
 
 type ClientSpec struct {
-	Repository string
-	ClientId   string
+	Repositories []string
+	ClientId     string
 }
 
 // ClientSpecElements holds the number of elements stored in a ClientSpec
@@ -26,16 +26,26 @@ const ClientSpecSeparator = ":"
 // [0] - Bound repository name
 // [1] - Client ID
 func (spec ClientSpec) ClientSecret(key *[32]byte) (string, error) {
-	secret, err := encrypt.Encrypt([]byte(spec.Repository+":"+spec.ClientId), key)
+	secret, err := encrypt.Encrypt([]byte(strings.Join(spec.Repositories, "|")+":"+spec.ClientId), key)
 	if err != nil {
 		return "", err
 	}
 	return b64.StdEncoding.EncodeToString(secret), nil
 }
 
+// CanAccessRepository returns true whenever repository is included in the ClientSpec repositories
+func (spec ClientSpec) CanAccessRepository(repository string) bool {
+	for _, r := range spec.Repositories {
+		if strings.EqualFold(r, repository) {
+			return true
+		}
+	}
+	return false
+}
+
 // NewClientSpec generates a new client specification.
-func NewClientSpec(clientId string, repository string) *ClientSpec {
-	return &ClientSpec{Repository: repository, ClientId: clientId}
+func NewClientSpec(clientId string, repositories []string) *ClientSpec {
+	return &ClientSpec{Repositories: repositories, ClientId: clientId}
 }
 
 // UnmarshalClientSecret unmarshalls a ClientSpec out of a client secret
@@ -55,7 +65,7 @@ func UnmarshalClientSecret(clientSecret string, key *[32]byte) (*ClientSpec, err
 		return nil, ErrMalformedClientSecret
 	}
 
-	return NewClientSpec(elements[1], elements[0]), nil
+	return NewClientSpec(elements[1], strings.Split(elements[0], "|")), nil
 }
 
 var (

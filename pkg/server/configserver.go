@@ -126,7 +126,7 @@ func (server *ConfigServer) processGitRepoRequest(w http.ResponseWriter, r *http
 		}
 	}
 
-	if spec.Repository != repository {
+	if !spec.CanAccessRepository(repository) {
 		server.writeResponse(http.StatusUnauthorized, []byte(err.Error()), w)
 	}
 

@@ -11,7 +11,7 @@ import (
 
 func TestCreateClientSecret(t *testing.T) {
 	key := encrypt.NewEncryptionKey()
-	spec := NewClientSpec("clientid", "repository")
+	spec := NewClientSpec("clientid", []string{"repo1", "repo2"})
 	secret, err := spec.ClientSecret(key)
 
 	assert.NoError(t, err)
@@ -20,19 +20,20 @@ func TestCreateClientSecret(t *testing.T) {
 
 func TestUnmarshalClientSecret(t *testing.T) {
 	key := encrypt.NewEncryptionKey()
-	spec := NewClientSpec("clientid", "repository")
+	spec := NewClientSpec("clientid", []string{"repo1", "repo2"})
 	secret, _ := spec.ClientSecret(key)
 
 	unmarshalled, err := UnmarshalClientSecret(secret, key)
 	assert.NoError(t, err)
 	assert.NotNil(t, unmarshalled)
 	assert.Equal(t, "clientid", unmarshalled.ClientId)
-	assert.Equal(t, "repository", unmarshalled.Repository)
+	assert.Contains(t, unmarshalled.Repositories, "repo1")
+	assert.Contains(t, unmarshalled.Repositories, "repo2")
 }
 
 func TestFromBasicAuth(t *testing.T) {
 	key := encrypt.NewEncryptionKey()
-	spec := NewClientSpec("clientid", "repository")
+	spec := NewClientSpec("clientid", []string{"repo1", "repo2"})
 	secret, _ := spec.ClientSecret(key)
 	auth := b64.StdEncoding.EncodeToString([]byte("clientid:" + secret))
 
@@ -43,7 +44,8 @@ func TestFromBasicAuth(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, unmarshalled)
 	assert.Equal(t, "clientid", unmarshalled.ClientId)
-	assert.Equal(t, "repository", unmarshalled.Repository)
+	assert.Contains(t, unmarshalled.Repositories, "repo1")
+	assert.Contains(t, unmarshalled.Repositories, "repo2")
 }
 
 func TestAuthRequired(t *testing.T) {
@@ -67,7 +69,7 @@ func TestCorruptedAuth(t *testing.T) {
 
 func TestUnauthorized(t *testing.T) {
 	key := encrypt.NewEncryptionKey()
-	spec := NewClientSpec("clientid", "repository")
+	spec := NewClientSpec("clientid", []string{"repo1", "repo2"})
 	secret, _ := spec.ClientSecret(key)
 	auth := b64.StdEncoding.EncodeToString([]byte("wrongclientid:" + secret))
 

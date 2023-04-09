@@ -17,7 +17,7 @@ If the ClientID is not provided a new client id will be generated.
 }
 
 func init() {
-	RegisterClientCommand.Flags().StringP("repository", "r", "", "target repository - needs to match a repository name configured in the configserver.yaml file")
+	RegisterClientCommand.Flags().StringSliceP("repositories", "r", []string{}, "target repositories - needs to match repositories configured in the configserver.yaml file")
 	RegisterClientCommand.Flags().StringP("clientid", "i", "", "client id")
 	RootCommand.AddCommand(RegisterClientCommand)
 }
@@ -27,9 +27,9 @@ func registerClient(cmd *cobra.Command, _ []string) {
 	if len(clientId) == 0 || err != nil {
 		clientId = uuid.NewString()
 	}
-	repo, err := cmd.Flags().GetString("repository")
+	repo, err := cmd.Flags().GetStringSlice("repositories")
 	if len(repo) == 0 || err != nil {
-		Logger.Sugar().Fatal("Missing mandatory argument : repository")
+		Logger.Sugar().Fatal("Missing mandatory argument : repositories")
 	}
 
 	spec := auth.NewClientSpec(clientId, repo)
