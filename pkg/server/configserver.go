@@ -2,6 +2,7 @@ package server
 
 import (
 	"embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/fredjeck/configserver/pkg/auth"
@@ -62,6 +63,21 @@ func (server *ConfigServer) encryptValue(w http.ResponseWriter, req *http.Reques
 	}
 }
 
+func (server *ConfigServer) listRepositories(w http.ResponseWriter, req *http.Request) {
+	w.Header().Add("Content-Type", "application/json")
+	var repos []string
+	for _, v := range server.configuration.Repositories {
+		repos = append(repos, v.Name)
+	}
+	values, err := json.Marshal(repos)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write(values)
+}
+
 // Start starts the configserver
 // - Enables the repository manager to pull changes from configured repositories
 // - Start serving hosted repositories request
@@ -85,6 +101,7 @@ func (server *ConfigServer) Start() {
 	}
 
 	router.HandleFunc("/api/encrypt", server.encryptValue)
+	router.HandleFunc("/api/repositories", server.listRepositories)
 	router.Handle("/", http.FileServer(http.FS(serverRoot)))
 
 	err = http.ListenAndServe(":8090", loggingMiddleware(middleware(router)))
