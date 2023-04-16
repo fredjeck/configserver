@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/fredjeck/configserver/pkg/auth"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"io"
 	"io/fs"
 	"net/http"
@@ -157,6 +158,7 @@ func (server *ConfigServer) Start() {
 	router.HandleFunc("/api/encrypt", server.encryptValue)
 	router.HandleFunc("/api/repositories", server.listRepositories)
 	router.HandleFunc("/api/register", server.registerClient)
+	router.Handle("/metrics", promhttp.Handler())
 	router.Handle("/", http.FileServer(http.FS(serverRoot)))
 
 	err = http.ListenAndServe(":8090", loggingMiddleware(middleware(router)))
