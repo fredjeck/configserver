@@ -45,6 +45,7 @@ func New(configuration config.Config, key *[32]byte, logger zap.Logger) *ConfigS
 }
 
 func (server *ConfigServer) encryptValue(w http.ResponseWriter, req *http.Request) {
+	enableCors(&w)
 	value, err := io.ReadAll(req.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -64,6 +65,7 @@ func (server *ConfigServer) encryptValue(w http.ResponseWriter, req *http.Reques
 }
 
 func (server *ConfigServer) listRepositories(w http.ResponseWriter, req *http.Request) {
+	enableCors(&w)
 	w.Header().Add("Content-Type", "application/json")
 	var repos []string
 	for _, v := range server.configuration.Repositories {
@@ -89,6 +91,13 @@ type RegisterClientResponse struct {
 }
 
 func (server *ConfigServer) registerClient(w http.ResponseWriter, req *http.Request) {
+	enableCors(&w)
+
+	if req.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	if req.Method != http.MethodPost {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -155,6 +164,11 @@ func (server *ConfigServer) Start() {
 		server.logger.Sugar().Fatal("error starting configserver:", err.Error())
 		return
 	}
+}
+
+func enableCors(w *http.ResponseWriter) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Headers", "*")
 }
 
 // Writes the Git Middleware response
