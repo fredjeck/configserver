@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/fredjeck/configserver/pkg/auth"
+	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"io"
 	"io/fs"
@@ -113,6 +114,10 @@ func (server *ConfigServer) registerClient(w http.ResponseWriter, req *http.Requ
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
+	}
+
+	if len(registerRequest.ClientId) == 0 {
+		registerRequest.ClientId = uuid.NewString()
 	}
 
 	spec := auth.NewClientSpec(registerRequest.ClientId, registerRequest.Repositories)

@@ -2,10 +2,15 @@ import { PropsWithChildren, ReactEventHandler, useEffect, useState } from "react
 
 export interface AlertConfiguration{
   title:string;
-  message:string;
+  visible:boolean;
 }
 
 export default function Alert(props:PropsWithChildren<AlertConfiguration>) {
+
+  if(!props.visible){
+    return null;
+  }
+
   return (
     <div
       className="bg-teal-100 border-t-4 border-teal-500 rounded-b text-teal-900 px-4 py-3 shadow-md"
@@ -24,7 +29,7 @@ export default function Alert(props:PropsWithChildren<AlertConfiguration>) {
         <div>
           <p className="font-bold">{props.title}</p>
           <p className="text-sm">
-            {props.message.length>0 ? props.message : props.children}
+            {props.children}
           </p>
         </div>
       </div>
