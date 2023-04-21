@@ -82,6 +82,19 @@ func (server *ConfigServer) listRepositories(w http.ResponseWriter, req *http.Re
 	w.Write(values)
 }
 
+func (server *ConfigServer) statistics(w http.ResponseWriter, req *http.Request) {
+	enableCors(&w)
+	w.Header().Add("Content-Type", "application/json")
+
+	values, err := json.Marshal(server.repositories.Repositories)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write(values)
+}
+
 type RegisterClientRequest struct {
 	ClientId     string
 	Repositories []string
@@ -161,6 +174,7 @@ func (server *ConfigServer) Start() {
 	}
 
 	router.HandleFunc("/api/encrypt", server.encryptValue)
+	router.HandleFunc("/api/stats", server.statistics)
 	router.HandleFunc("/api/repositories", server.listRepositories)
 	router.HandleFunc("/api/register", server.registerClient)
 	router.Handle("/metrics", promhttp.Handler())

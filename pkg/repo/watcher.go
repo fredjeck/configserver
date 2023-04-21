@@ -14,10 +14,11 @@ import (
 // NewWatcher uses the provided repository configuration to periodically pulls the repository
 // to the path pointed by localPath.
 // If and error occurs, provides a detailed output in the logs
-func NewWatcher(repository config.Repository, localPath string, logger zap.Logger) {
+func NewWatcher(repository config.Repository, localPath string, logger zap.Logger, uplink chan RepositoryUpdateEvent) {
 
 	log := logger.With(zap.String("repository.name", repository.Name)).With(zap.String("repository.url", repository.Url)).With(zap.String("repository.localPath", localPath))
 	for {
+		last := time.Now()
 		log.Sugar().Infof("pulling repository '%s'", repository.Name)
 
 		workspace, err := git.PlainOpen(localPath)
@@ -56,8 +57,13 @@ func NewWatcher(repository config.Repository, localPath string, logger zap.Logge
 			}
 		}
 
-		next := time.Duration(repository.RefreshInterval) * time.Second
-		log.Sugar().Infof("'%s' : next pull will occur @ %s", repository.Name, time.Now().Add(next))
-		time.Sleep(next)
+		nextRefresh := time.Duration(repository.RefreshInterval) * time.Second
+		log.Sugar().Infof("'%s' : next pull will occur @ %s", repository.Name, time.Now().Add(nextRefresh))
+		uplink <- *&RepositoryUpdateEvent{
+			lastUpdate: last,
+			nextUpdate: time.Now().Add(nextRefresh),
+			name:       repository.Name,
+		}
+		time.Sleep(nextRefresh)
 	}
 }
