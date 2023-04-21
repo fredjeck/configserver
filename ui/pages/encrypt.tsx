@@ -10,8 +10,6 @@ interface Repository {
   selected: boolean;
 }
 
-
-
 export default function Register() {
   const [postError, setPostError] = useState<string>("");
 
