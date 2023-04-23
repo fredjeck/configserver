@@ -12,16 +12,16 @@ import (
 )
 
 type RepositoryWatcher struct {
-	repository config.Repository
+	repository *config.Repository
 	localPath  string
-	logger     zap.Logger
+	logger     *zap.Logger
 	uplink     chan RepositoryUpdateEvent
 }
 
 // NewWatcher uses the provided repository configuration to periodically pulls the repository
 // to the path pointed by localPath.
 // If and error occurs, provides a detailed output in the logs
-func NewWatcher(repo config.Repository, localPath string, logger zap.Logger, uplink chan RepositoryUpdateEvent) *RepositoryWatcher {
+func NewWatcher(repo *config.Repository, localPath string, logger *zap.Logger, uplink chan RepositoryUpdateEvent) *RepositoryWatcher {
 	return &RepositoryWatcher{
 		repository: repo,
 		localPath:  localPath,

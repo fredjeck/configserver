@@ -13,7 +13,7 @@ import (
 
 type RepositoryManager struct {
 	repositoriesRoot string
-	logger           zap.Logger
+	logger           *zap.Logger
 	Repositories     map[string]*RepositoryHandle
 	heartbeat        chan RepositoryUpdateEvent
 }
@@ -46,7 +46,7 @@ var (
 )
 
 // NewManager creates a new repository manager
-func NewManager(conf config.Config, logger zap.Logger) *RepositoryManager {
+func NewManager(conf *config.Config, logger *zap.Logger) *RepositoryManager {
 	r := make(map[string]*RepositoryHandle)
 	for _, v := range conf.Repositories {
 		r[v.Name] = &RepositoryHandle{
@@ -79,7 +79,7 @@ func (mgr *RepositoryManager) Checkout() error {
 
 	for _, repository := range mgr.Repositories {
 		repositoryPath := path.Join(mgr.repositoriesRoot, repository.Configuration.Name)
-		NewWatcher(repository.Configuration, repositoryPath, mgr.logger, mgr.heartbeat).Watch()
+		NewWatcher(&repository.Configuration, repositoryPath, mgr.logger, mgr.heartbeat).Watch()
 	}
 	go mgr.ReadUpdates()
 	return nil

@@ -16,8 +16,7 @@ type cacheEntry struct {
 
 // MemoryCache is a basic (but thread safe) memory cache
 type MemoryCache struct {
-	stop chan struct{}
-
+	stop      chan struct{}
 	waitGroup sync.WaitGroup
 	mutex     sync.RWMutex
 	entries   map[uint64]cacheEntry
@@ -29,7 +28,7 @@ var (
 
 // NewMemoryCache Instantiates a new memory cache which automatically evicts entries after the given retention period
 // evictorRunInterval controls the interval at which the cache evictor runs
-func NewMemoryCache(evictorRunInterval time.Duration, logger zap.Logger) *MemoryCache {
+func NewMemoryCache(evictorRunInterval time.Duration, logger *zap.Logger) *MemoryCache {
 	cache := &MemoryCache{
 		entries: make(map[uint64]cacheEntry),
 		stop:    make(chan struct{}),

@@ -3,21 +3,14 @@ package server
 import (
 	"embed"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/fredjeck/configserver/pkg/auth"
-	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"io"
 	"io/fs"
 	"net/http"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/fredjeck/configserver/pkg/cache"
 	"github.com/fredjeck/configserver/pkg/config"
-	"github.com/fredjeck/configserver/pkg/encrypt"
 	"github.com/fredjeck/configserver/pkg/repo"
 	"go.uber.org/zap"
 )
@@ -29,14 +22,19 @@ var content embed.FS
 const GitUrlPrefix string = "/git"
 
 type ConfigServer struct {
-	configuration config.Config
+	configuration *config.Config
 	key           *[32]byte
 	repositories  *repo.RepositoryManager
-	logger        zap.Logger
+	logger        *zap.Logger
 	cache         *cache.MemoryCache
 }
 
-func New(configuration config.Config, key *[32]byte, logger zap.Logger) *ConfigServer {
+type ConfigServerError struct {
+	Status  int    `json:"status"`
+	Message string `json:"message"`
+}
+
+func New(configuration *config.Config, key *[32]byte, logger *zap.Logger) *ConfigServer {
 	return &ConfigServer{
 		configuration: configuration,
 		key:           key,
@@ -46,129 +44,10 @@ func New(configuration config.Config, key *[32]byte, logger zap.Logger) *ConfigS
 	}
 }
 
-func (server *ConfigServer) encryptValue(w http.ResponseWriter, req *http.Request) {
-	enableCors(&w)
-	value, err := io.ReadAll(req.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	token, err := encrypt.NewEncryptedToken(value, server.key)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	_, err = w.Write([]byte(token))
-	if err != nil {
-		return
-	}
-}
-
-func (server *ConfigServer) listRepositories(w http.ResponseWriter, req *http.Request) {
-	enableCors(&w)
-	w.Header().Add("Content-Type", "application/json")
-	var repos []string
-	for _, v := range server.configuration.Repositories {
-		repos = append(repos, v.Name)
-	}
-	values, err := json.Marshal(repos)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	w.Write(values)
-}
-
-type StatisticsResponse struct {
-	repo.RepositoryStatistics
-	Name string `json:"name"`
-}
-
-func (server *ConfigServer) statistics(w http.ResponseWriter, req *http.Request) {
-	enableCors(&w)
-	w.Header().Add("Content-Type", "application/json")
-
-	stats := make([]*StatisticsResponse, 0)
-
-	for _, s := range server.repositories.Repositories {
-		stats = append(stats, &StatisticsResponse{
-			RepositoryStatistics: *s.Statistics,
-			Name:                 s.Configuration.Name,
-		})
-	}
-
-	values, err := json.Marshal(stats)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	w.Write(values)
-}
-
-type RegisterClientRequest struct {
-	ClientId     string   `json:"clientId"`
-	Repositories []string `json:"repositories"`
-}
-
-type RegisterClientResponse struct {
-	ClientId     string `json:"clientId"`
-	ClientSecret string `json:"clientSecret"`
-}
-
-func (server *ConfigServer) registerClient(w http.ResponseWriter, req *http.Request) {
-	enableCors(&w)
-
-	if req.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	if req.Method != http.MethodPost {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	var registerRequest RegisterClientRequest
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	err = json.Unmarshal(body, &registerRequest)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if len(registerRequest.ClientId) == 0 {
-		registerRequest.ClientId = uuid.NewString()
-	}
-
-	spec := auth.NewClientSpec(registerRequest.ClientId, registerRequest.Repositories)
-	secret, err := spec.ClientSecret(server.key)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	w.Header().Add("Content-Type", "application/json")
-	resp := &RegisterClientResponse{ClientId: registerRequest.ClientId, ClientSecret: secret}
-	values, err := json.Marshal(resp)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	w.Write(values)
-
-}
-
-// Start starts the configserver
+// Start starts the server
 // - Enables the repository manager to pull changes from configured repositories
 // - Start serving hosted repositories request
-// - Start serving value encryption requests
+// - Start serving api requests
 func (server *ConfigServer) Start() {
 
 	err := server.repositories.Checkout()
@@ -194,7 +73,8 @@ func (server *ConfigServer) Start() {
 	router.Handle("/metrics", promhttp.Handler())
 	router.Handle("/", http.FileServer(http.FS(serverRoot)))
 
-	err = http.ListenAndServe(":8090", loggingMiddleware(middleware(router)))
+	server.logger.Sugar().Info("Now listening on %s", server.configuration.ListenOn)
+	err = http.ListenAndServe(server.configuration.ListenOn, loggingMiddleware(middleware(router)))
 	if err != nil {
 		server.logger.Sugar().Fatal("error starting configserver:", err.Error())
 		return
@@ -212,79 +92,20 @@ func (server *ConfigServer) writeResponse(status int, content []byte, w http.Res
 	_, _ = w.Write(content)
 }
 
-func (server *ConfigServer) processGitRepoRequest(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-
-	// element should at least contain ["", "git", "repository name", "file name"]
-	// the first empty element is caused by the leading slash
-	elements := strings.Split(r.RequestURI, "/")
-	if len(elements) < 4 {
-		message := fmt.Sprintf("Invalid repository path '%s' expected format is '%s/repository name/optional folder/file", r.RequestURI, GitUrlPrefix)
-		server.logger.Warn(message, zap.String("request.path", r.RequestURI))
-		server.writeResponse(http.StatusBadRequest, []byte(message), w)
-		return
+func (server *ConfigServer) writeError(status int, w http.ResponseWriter, message string) {
+	w.WriteHeader(status)
+	serverError := &ConfigServerError{
+		Status:  status,
+		Message: message,
 	}
-	repository := elements[2]
-	path := strings.Join(elements[3:], string(os.PathSeparator))
-
-	spec, err := auth.FromBasicAuth(*r, server.key)
+	j, err := json.Marshal(serverError)
 	if err != nil {
-		if errors.Is(err, auth.ErrAuthRequired) {
-			w.Header().Add("WWW-Authenticate", "Basic realm=\"ConfigServer\"")
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		} else {
-			server.writeResponse(http.StatusUnauthorized, []byte(err.Error()), w)
-		}
-	}
-
-	if !spec.CanAccessRepository(repository) {
-		server.writeResponse(http.StatusUnauthorized, []byte(err.Error()), w)
-	}
-
-	content, err := server.cache.Get(path)
-	if errors.Is(err, cache.ErrKeyNotInCache) {
-		content, err = server.repositories.Get(repository, path)
-		if err != nil {
-			message := fmt.Sprintf("'%s' file not found", path)
-			if errors.Is(err, repo.ErrRepositoryNotFound) {
-				message = fmt.Sprintf("'%s' repository does not exist", repository)
-			}
-			if errors.Is(err, repo.ErrFileNotFound) {
-				message = fmt.Sprintf("'%s' file does not exsists", path)
-			}
-			if errors.Is(err, repo.ErrInvalidPath) {
-				message = fmt.Sprintf("'%s' path is not valid or contains unsupported characters", path)
-			}
-
-			server.logger.Warn(message, zap.String("request.path", r.RequestURI))
-			server.writeResponse(http.StatusNotFound, []byte(message), w)
-			return
-		}
-		eviction := time.Now().Add(time.Duration(server.configuration.CacheStorageSeconds) * time.Second)
-		server.cache.Set(path, content, eviction)
-		server.logger.Sugar().Debugf("'%s' : '%s' retrieved from filesystem (cached until %s)", repository, path, eviction)
+		server.logger.Sugar().Error(err)
 	} else {
-		server.logger.Sugar().Debugf("'%s' : '%s' retrieved from memory cache", repository, path)
+		_, _ = w.Write(j)
 	}
-
-	server.writeResponse(http.StatusOK, content, w)
-	return
 }
 
-// Creates a middleware which intercepts requests retrieving files from the served GIT repositories
-// Expects the URL with the following format : GitUrlPrefix/repository name/optional folder(s)/file name
-// Example : /git/repository/folder/file.yaml
-func (server *ConfigServer) createGitMiddleWare() func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, r *http.Request) {
-			if r.RequestURI[0:4] == GitUrlPrefix && r.Method == http.MethodGet {
-				server.processGitRepoRequest(w, r)
-				return
-			}
-			// call next handler
-			next.ServeHTTP(w, r)
-		}
-		return http.HandlerFunc(fn)
-	}
+func (server *ConfigServer) writeErrorF(status int, w http.ResponseWriter, message string, params ...interface{}) {
+	server.writeError(status, w, fmt.Sprintf(message, params...))
 }

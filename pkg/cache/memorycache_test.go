@@ -11,7 +11,7 @@ import (
 func TestStoreAndRetrieve(t *testing.T) {
 
 	logger, _ := zap.NewDevelopment()
-	cache := NewMemoryCache(60*time.Minute, *logger)
+	cache := NewMemoryCache(60*time.Minute, logger)
 
 	key := "random key"
 	value := "go is a fantastic language"
@@ -25,7 +25,7 @@ func TestStoreAndRetrieve(t *testing.T) {
 func TestEviction(t *testing.T) {
 
 	logger, _ := zap.NewDevelopment()
-	cache := NewMemoryCache(1*time.Second, *logger)
+	cache := NewMemoryCache(1*time.Second, logger)
 
 	key := "random key"
 	value := "go is a fantastic language"

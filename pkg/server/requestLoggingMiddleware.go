@@ -39,7 +39,7 @@ func (rw *responseWriter) WriteHeader(code int) {
 }
 
 // RequestLoggingMiddleware logs the incoming HTTP request & its duration.
-func RequestLoggingMiddleware(logger zap.Logger) func(http.Handler) http.Handler {
+func RequestLoggingMiddleware(logger *zap.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
