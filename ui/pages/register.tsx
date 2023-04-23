@@ -76,7 +76,7 @@ export default function Register() {
 
   if (fetchError.length > 0) {
     return (
-      <Layout>
+      <Layout selected="register">
         <Alert title="Woops" visible={true}>
           Dang! Something wrong happened while loading the list of configured
           repositories. Please make sure you configured at least one repository
@@ -88,7 +88,7 @@ export default function Register() {
   }
 
   return (
-    <Layout>
+    <Layout selected="register">
       <div className="mx-auto max-w-2xl text-center">
         <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
           Register Client
@@ -96,7 +96,7 @@ export default function Register() {
         <p className="mt-2 text-lg leading-8 text-gray-600">
           Use this form to register a new Client ID/Client Secret pair.
           <br />
-          Don't forget to register the new Client ID in your configuration.
+          Don&apos;t forget to register the new Client ID in your configuration.
           <br />
           If Client ID is ommitted, a new random identifier will be genreated.
         </p>

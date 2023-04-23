@@ -1,10 +1,14 @@
 import { PropsWithChildren } from "react";
 import Header from "./header";
 
-export default function Layout(props: PropsWithChildren) {
+interface LayoutProps {
+  selected: string;
+}
+
+export default function Layout(props: PropsWithChildren<LayoutProps>) {
   return (
     <div>
-      <Header selected=""></Header>
+      <Header selected={props.selected}></Header>
       <main className="isolate bg-white px-6 lg:px-8">
         <div
           className="absolute inset-x-0 -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[-10rem]"

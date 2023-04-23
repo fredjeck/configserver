@@ -55,6 +55,6 @@ func initConfig() {
 }
 
 func startServer(_ *cobra.Command, _ []string) {
-	srv := server.New(*Configuration, Key, Logger)
+	srv := server.New(Configuration, Key, Logger)
 	srv.Start()
 }
