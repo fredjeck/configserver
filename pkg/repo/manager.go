@@ -14,21 +14,27 @@ import (
 type RepositoryManager struct {
 	repositoriesRoot string
 	logger           zap.Logger
-	Repositories     map[string]*RepositoryEntry
+	Repositories     map[string]*RepositoryHandle
 	heartbeat        chan RepositoryUpdateEvent
 }
 
-type RepositoryEntry struct {
-	Hitcount      int64
-	LastUpdate    time.Time
-	NextUpdate    time.Time
+type RepositoryHandle struct {
+	Statistics    *RepositoryStatistics
 	Configuration config.Repository
 }
 
+type RepositoryStatistics struct {
+	Hitcount   int64     `json:"hitCount"`
+	LastUpdate time.Time `json:"lastUpdate"`
+	NextUpdate time.Time `json:"nextUpdate"`
+	LastError  string    `json:"lastError"`
+}
+
 type RepositoryUpdateEvent struct {
-	name       string
-	lastUpdate time.Time
-	nextUpdate time.Time
+	repositoryName string
+	lastUpdate     time.Time
+	nextUpdate     time.Time
+	lastError      string
 }
 
 const RepositoriesFolder string = "repositories"
@@ -41,13 +47,15 @@ var (
 
 // NewManager creates a new repository manager
 func NewManager(conf config.Config, logger zap.Logger) *RepositoryManager {
-	r := make(map[string]*RepositoryEntry)
+	r := make(map[string]*RepositoryHandle)
 	for _, v := range conf.Repositories {
-		r[v.Name] = &RepositoryEntry{
+		r[v.Name] = &RepositoryHandle{
 			Configuration: v,
-			Hitcount:      0,
-			LastUpdate:    time.Time{},
-			NextUpdate:    time.Time{},
+			Statistics: &RepositoryStatistics{
+				Hitcount:   0,
+				LastUpdate: time.Time{},
+				NextUpdate: time.Time{},
+			},
 		}
 	}
 
@@ -71,7 +79,7 @@ func (mgr *RepositoryManager) Checkout() error {
 
 	for _, repository := range mgr.Repositories {
 		repositoryPath := path.Join(mgr.repositoriesRoot, repository.Configuration.Name)
-		go NewWatcher(repository.Configuration, repositoryPath, mgr.logger, mgr.heartbeat)
+		NewWatcher(repository.Configuration, repositoryPath, mgr.logger, mgr.heartbeat).Watch()
 	}
 	go mgr.ReadUpdates()
 	return nil
@@ -79,8 +87,9 @@ func (mgr *RepositoryManager) Checkout() error {
 
 func (mgr *RepositoryManager) ReadUpdates() {
 	for event := range mgr.heartbeat {
-		mgr.Repositories[event.name].NextUpdate = event.nextUpdate
-		mgr.Repositories[event.name].LastUpdate = event.lastUpdate
+		mgr.Repositories[event.repositoryName].Statistics.LastError = event.lastError
+		mgr.Repositories[event.repositoryName].Statistics.NextUpdate = event.nextUpdate
+		mgr.Repositories[event.repositoryName].Statistics.LastUpdate = event.lastUpdate
 	}
 }
 
@@ -92,7 +101,7 @@ func (mgr *RepositoryManager) Get(repository string, target string) ([]byte, err
 		return nil, ErrRepositoryNotFound
 	}
 
-	r.Hitcount++
+	r.Statistics.Hitcount++
 
 	if strings.Contains(target, "."+string(os.PathSeparator)) || strings.Contains(target, ".."+string(os.PathSeparator)) {
 		return nil, ErrInvalidPath

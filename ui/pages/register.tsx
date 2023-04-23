@@ -16,8 +16,8 @@ interface RegistrationRequest {
 }
 
 interface RegistrationResponse {
-  ClientId: string;
-  ClientSecret: string;
+  clientId: string;
+  clientSecret: string;
 }
 
 export default function Register() {
@@ -62,9 +62,9 @@ export default function Register() {
         body: JSON.stringify(request),
       });
       const registration: RegistrationResponse = await response.json();
-      setClientSecret(registration.ClientSecret);
+      setClientSecret(registration.clientSecret);
       if (clientId.length == 0) {
-        setClientId(registration.ClientId);
+        setClientId(registration.clientId);
       }
     };
 

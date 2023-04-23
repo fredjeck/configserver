@@ -4,7 +4,7 @@ import Header from "./header";
 export default function Layout(props: PropsWithChildren) {
   return (
     <div>
-      <Header></Header>
+      <Header selected=""></Header>
       <main className="isolate bg-white px-6 lg:px-8">
         <div
           className="absolute inset-x-0 -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[-10rem]"

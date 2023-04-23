@@ -82,11 +82,25 @@ func (server *ConfigServer) listRepositories(w http.ResponseWriter, req *http.Re
 	w.Write(values)
 }
 
+type StatisticsResponse struct {
+	repo.RepositoryStatistics
+	Name string `json:"name"`
+}
+
 func (server *ConfigServer) statistics(w http.ResponseWriter, req *http.Request) {
 	enableCors(&w)
 	w.Header().Add("Content-Type", "application/json")
 
-	values, err := json.Marshal(server.repositories.Repositories)
+	stats := make([]*StatisticsResponse, 0)
+
+	for _, s := range server.repositories.Repositories {
+		stats = append(stats, &StatisticsResponse{
+			RepositoryStatistics: *s.Statistics,
+			Name:                 s.Configuration.Name,
+		})
+	}
+
+	values, err := json.Marshal(stats)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -96,13 +110,13 @@ func (server *ConfigServer) statistics(w http.ResponseWriter, req *http.Request)
 }
 
 type RegisterClientRequest struct {
-	ClientId     string
-	Repositories []string
+	ClientId     string   `json:"clientId"`
+	Repositories []string `json:"repositories"`
 }
 
 type RegisterClientResponse struct {
-	ClientId     string
-	ClientSecret string
+	ClientId     string `json:"clientId"`
+	ClientSecret string `json:"clientSecret"`
 }
 
 func (server *ConfigServer) registerClient(w http.ResponseWriter, req *http.Request) {

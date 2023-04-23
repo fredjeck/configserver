@@ -1,4 +1,10 @@
-export default function Header() {
+import { PropsWithChildren } from "react";
+
+interface HeaderProps{
+  selected:string
+}
+
+export default function Header({selected}:PropsWithChildren<HeaderProps>) {
   return (
     <div className="lg:flex lg:items-center lg:justify-between p-8">
       <div className="min-w-0 flex-1">

@@ -6,10 +6,11 @@ import { ReactEventHandler, useEffect, useState } from "react";
 const inter = Inter({ subsets: ["latin"] });
 
 interface Repository {
-  Name: string;
-  LastUpdated: Date;
-  NextUpdate: Date;
-  HitCount: number;
+  name: string;
+  lastUpdate: string;
+  nextUpdate: string;
+  hitCount: number;
+  lastError: string;
 }
 
 export default function Register() {
@@ -56,12 +57,28 @@ export default function Register() {
       </div>
       <div className="mx-auto mt-16 max-w-xl sm:mt-20">
         <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            {repositories.map((k,v)=>{
-              return (<div>{JSON.stringify(k)}</div>)
-            })
-            }
-          </div>
+          <table className="table-auto">
+            <thead>
+              <tr>
+                <th>Repository</th>
+                <th>Hit Count</th>
+                <th>Last Update</th>
+                <th>Next Update</th>
+                <th>Last Error</th>
+              </tr>
+            </thead>
+            <tbody>
+              {repositories.map((repo, index) => (
+                <tr key={index}>
+                  <th>{repo.name}</th>
+                  <td>{repo.hitCount}</td>
+                  <td>{new Date(repo.lastUpdate).toLocaleString(undefined,{dateStyle:"medium", timeStyle:"medium"})}</td>
+                  <td>{new Date(repo.nextUpdate).toLocaleString(undefined,{dateStyle:"medium", timeStyle:"medium"})}</td>
+                  <td>{repo.lastError}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </Layout>
