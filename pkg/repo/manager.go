@@ -37,8 +37,6 @@ type RepositoryUpdateEvent struct {
 	lastError      string
 }
 
-const RepositoriesFolder string = "repositories"
-
 var (
 	ErrRepositoryNotFound = errors.New("repository does not exist")
 	ErrFileNotFound       = errors.New("file not found in repository")
@@ -61,7 +59,7 @@ func NewManager(conf *config.Config, logger *zap.Logger) *RepositoryManager {
 
 	return &RepositoryManager{
 		Repositories:     r,
-		repositoriesRoot: path.Join(conf.Home, RepositoriesFolder),
+		repositoriesRoot: conf.RepositoriesCheckoutLocation,
 		logger:           logger,
 		heartbeat:        make(chan RepositoryUpdateEvent),
 	}

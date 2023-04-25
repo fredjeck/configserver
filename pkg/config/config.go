@@ -11,6 +11,8 @@ import (
 const (
 	// EnvConfigserverHome defines the name of the environment variable pointing to the configuration file
 	EnvConfigserverHome = "CONFIGSERVER_HOME"
+	// EnvRepositoriesHome defines the name of the environment variable pointing to the location where repositories will be checked out
+	EnvRepositoriesHome = "CONFIGSERVER_REPOSITORIES"
 	// DefaultHome defines the default home directory used when the CONFIGSERVER_HOME environment variable is not defined
 	DefaultHome string = "/var/run/configserver"
 )
@@ -37,6 +39,11 @@ func ReadFromPath(configurationRoot string) (*Config, error) {
 		}
 	}
 
+	repositoriesLocation := os.Getenv(EnvRepositoriesHome)
+	if len(repositoriesLocation) == 0 {
+		repositoriesLocation = path.Join(root, "repositories")
+	}
+
 	home, err := os.Stat(root)
 	if err != nil {
 		return nil, fmt.Errorf("cannot stat '%s': %s", root, err.Error())
@@ -58,11 +65,12 @@ func ReadFromPath(configurationRoot string) (*Config, error) {
 	}
 
 	conf := &Config{
-		ListenOn:                    ":8090",
-		CacheEvictorIntervalSeconds: 10,
-		CacheStorageSeconds:         30,
-		Home:                        root,
-		LoadedFrom:                  path.Join(root, "configserver.yaml"),
+		ListenOn:                     ":8090",
+		CacheEvictorIntervalSeconds:  10,
+		CacheStorageSeconds:          30,
+		Home:                         root,
+		RepositoriesCheckoutLocation: repositoriesLocation,
+		LoadedFrom:                   path.Join(root, "configserver.yaml"),
 	}
 	err = v.Unmarshal(&conf)
 	if err != nil {
@@ -72,12 +80,13 @@ func ReadFromPath(configurationRoot string) (*Config, error) {
 }
 
 type Config struct {
-	ListenOn                    string
-	CacheEvictorIntervalSeconds int
-	CacheStorageSeconds         int
-	LoadedFrom                  string
-	Home                        string
-	Repositories                Repositories
+	ListenOn                     string
+	CacheEvictorIntervalSeconds  int
+	CacheStorageSeconds          int
+	LoadedFrom                   string
+	Home                         string
+	RepositoriesCheckoutLocation string
+	Repositories                 Repositories
 }
 
 // EncryptionKeyPath returns the path to the location of the encryption.key file

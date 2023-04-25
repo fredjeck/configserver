@@ -1,12 +1,11 @@
 package server
 
 import (
-	"embed"
 	"encoding/json"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"io/fs"
 	"net/http"
+	"path"
 	"time"
 
 	"github.com/fredjeck/configserver/pkg/cache"
@@ -14,9 +13,6 @@ import (
 	"github.com/fredjeck/configserver/pkg/repo"
 	"go.uber.org/zap"
 )
-
-//go:embed resources
-var content embed.FS
 
 // GitUrlPrefix URL prefix from which git repository accesses are served
 const GitUrlPrefix string = "/git"
@@ -60,18 +56,14 @@ func (server *ConfigServer) Start() {
 	middleware := server.createGitMiddleWare()
 	loggingMiddleware := RequestLoggingMiddleware(server.logger)
 
-	serverRoot, err := fs.Sub(content, "resources")
-	if err != nil {
-		server.logger.Sugar().Fatal("error starting configserver, cannot find static resources:", err.Error())
-		return
-	}
+	ui := http.FileServer(http.Dir(path.Join(server.configuration.Home, "ui")))
 
 	router.HandleFunc("/api/encrypt", server.encryptValue)
 	router.HandleFunc("/api/stats", server.statistics)
 	router.HandleFunc("/api/repositories", server.listRepositories)
 	router.HandleFunc("/api/register", server.registerClient)
 	router.Handle("/metrics", promhttp.Handler())
-	router.Handle("/", http.FileServer(http.FS(serverRoot)))
+	router.Handle("/", ui)
 
 	server.logger.Sugar().Info("Now listening on %s", server.configuration.ListenOn)
 	err = http.ListenAndServe(server.configuration.ListenOn, loggingMiddleware(middleware(router)))
