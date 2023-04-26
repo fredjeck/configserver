@@ -56,7 +56,7 @@ func (server *ConfigServer) Start() {
 	middleware := server.createGitMiddleWare()
 	loggingMiddleware := RequestLoggingMiddleware(server.logger)
 
-	ui := http.FileServer(http.Dir(path.Join(server.configuration.Home, "ui")))
+	ui := http.FileServer(http.Dir(path.Join(server.configuration.Home, "static")))
 
 	router.HandleFunc("/api/encrypt", server.encryptValue)
 	router.HandleFunc("/api/stats", server.statistics)
