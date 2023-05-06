@@ -1,0 +1,12 @@
+version: "3.9"
+services:
+  configserver:
+    build: .
+    ports:
+      - "8090:8090"
+    environment:
+      #- CONFIGSERVER_HOME=/var/run/configserver/home
+      - CONFIGSERVER_REPOSITORIES=/var/run/configserver/repositories
+      - CONFIGSERVER_CFG=/var/run/configserver/cfg
+    volumes:
+      - /home/fred/configserver_dev:/var/run/configserver
