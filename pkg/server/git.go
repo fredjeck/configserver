@@ -21,7 +21,7 @@ func (server *ConfigServer) processGitRepoRequest(w http.ResponseWriter, r *http
 	elements := strings.Split(r.RequestURI, "/")
 	if len(elements) < 4 {
 		message := fmt.Sprintf("Invalid repository path '%s' expected format is '%s/repository name/optional folder/file", r.RequestURI, GitUrlPrefix)
-		server.logger.Warn(message, zap.String("request.path", r.RequestURI))
+		zap.L().Warn(message, zap.String("request.path", r.RequestURI))
 		server.writeResponse(http.StatusBadRequest, []byte(message), w)
 		return
 	}
@@ -58,15 +58,15 @@ func (server *ConfigServer) processGitRepoRequest(w http.ResponseWriter, r *http
 				message = fmt.Sprintf("'%s' path is not valid or contains unsupported characters", path)
 			}
 
-			server.logger.Warn(message, zap.String("request.path", r.RequestURI))
+			zap.L().Warn(message, zap.String("request.path", r.RequestURI))
 			server.writeResponse(http.StatusNotFound, []byte(message), w)
 			return
 		}
 		eviction := time.Now().Add(time.Duration(server.configuration.CacheStorageSeconds) * time.Second)
 		server.cache.Set(path, content, eviction)
-		server.logger.Sugar().Debugf("'%s' : '%s' retrieved from filesystem (cached until %s)", repository, path, eviction)
+		zap.L().Sugar().Debugf("'%s' : '%s' retrieved from filesystem (cached until %s)", repository, path, eviction)
 	} else {
-		server.logger.Sugar().Debugf("'%s' : '%s' retrieved from memory cache", repository, path)
+		zap.L().Sugar().Debugf("'%s' : '%s' retrieved from memory cache", repository, path)
 	}
 
 	server.writeResponse(http.StatusOK, content, w)
@@ -79,7 +79,7 @@ func (server *ConfigServer) processGitRepoRequest(w http.ResponseWriter, r *http
 func (server *ConfigServer) createGitMiddleWare() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			if r.RequestURI[0:4] == GitUrlPrefix && r.Method == http.MethodGet {
+			if len(r.RequestURI) >= 4 && r.RequestURI[0:4] == GitUrlPrefix && r.Method == http.MethodGet {
 				server.processGitRepoRequest(w, r)
 				return
 			}

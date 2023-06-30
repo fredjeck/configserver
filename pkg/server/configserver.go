@@ -21,7 +21,6 @@ type ConfigServer struct {
 	configuration *config.Config
 	key           *[32]byte
 	repositories  *repo.RepositoryManager
-	logger        *zap.Logger
 	cache         *cache.MemoryCache
 }
 
@@ -30,13 +29,12 @@ type ConfigServerError struct {
 	Message string `json:"message"`
 }
 
-func New(configuration *config.Config, key *[32]byte, logger *zap.Logger) *ConfigServer {
+func New(configuration *config.Config, key *[32]byte) *ConfigServer {
 	return &ConfigServer{
 		configuration: configuration,
 		key:           key,
-		repositories:  repo.NewManager(configuration, logger),
-		cache:         cache.NewMemoryCache(time.Duration(configuration.CacheEvictorIntervalSeconds), logger),
-		logger:        logger,
+		repositories:  repo.NewManager(configuration),
+		cache:         cache.NewMemoryCache(time.Duration(configuration.CacheEvictorIntervalSeconds)),
 	}
 }
 
@@ -48,13 +46,13 @@ func (server *ConfigServer) Start() {
 
 	err := server.repositories.Checkout()
 	if err != nil {
-		server.logger.Sugar().Fatal("error starting configserver, cannot checkout repositories:", err.Error())
+		zap.L().Sugar().Fatal("error starting configserver, cannot checkout repositories:", err.Error())
 		return
 	}
 
 	router := http.NewServeMux()
 	middleware := server.createGitMiddleWare()
-	loggingMiddleware := RequestLoggingMiddleware(server.logger)
+	loggingMiddleware := RequestLoggingMiddleware(zap.L())
 
 	ui := http.FileServer(http.Dir(path.Join(server.configuration.Home, "static")))
 
@@ -65,10 +63,10 @@ func (server *ConfigServer) Start() {
 	router.Handle("/metrics", promhttp.Handler())
 	router.Handle("/", ui)
 
-	server.logger.Sugar().Info("Now listening on %s", server.configuration.ListenOn)
+	zap.L().Sugar().Info("Now listening on %s", server.configuration.ListenOn)
 	err = http.ListenAndServe(server.configuration.ListenOn, loggingMiddleware(middleware(router)))
 	if err != nil {
-		server.logger.Sugar().Fatal("error starting configserver:", err.Error())
+		zap.L().Sugar().Fatal("error starting configserver:", err.Error())
 		return
 	}
 }
@@ -92,7 +90,7 @@ func (server *ConfigServer) writeError(status int, w http.ResponseWriter, messag
 	}
 	j, err := json.Marshal(serverError)
 	if err != nil {
-		server.logger.Sugar().Error(err)
+		zap.L().Sugar().Error(err)
 	} else {
 		_, _ = w.Write(j)
 	}

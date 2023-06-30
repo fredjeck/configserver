@@ -1,7 +1,9 @@
+// Package config manges all the ConfigServer configuration activities
 package config
 
 import (
 	"fmt"
+	"go.uber.org/zap"
 	"os"
 	"path"
 
@@ -23,11 +25,16 @@ const (
 // If this parameter is omitted, tries to locate the configuration using the $CONFIGSERVER_HOME env variable.
 // If the variable is not defined, uses /var/run/configserver as a default.
 func ReadFromPath(configurationRoot string) (*Config, error) {
+
+	var envHome = os.Getenv(EnvConfigServerHome)
+	var envCfg = os.Getenv(EnvConfigServerCfg)
+	var envRepos = os.Getenv(EnvRepositoriesHome)
+
 	root := configurationRoot
 	if len(root) == 0 {
-		root = os.Getenv(EnvConfigServerCfg)
+		root = envCfg
 		if len(root) == 0 {
-			root = os.Getenv(EnvConfigServerHome)
+			root = envHome
 			if len(root) == 0 {
 				root = DefaultHome
 			}
@@ -41,29 +48,31 @@ func ReadFromPath(configurationRoot string) (*Config, error) {
 		return nil, fmt.Errorf("'%s' is not a valid directory", root)
 	}
 
-	home := os.Getenv(EnvConfigServerHome)
 	if len(root) == 0 {
 		root = DefaultHome
 	}
-	homeFolder, err := os.Stat(home)
+	homeFolder, err := os.Stat(envHome)
 	if err != nil {
-		return nil, fmt.Errorf("cannot stat '%s': %s", root, err.Error())
+		return nil, fmt.Errorf("cannot stat '%s': %w", root, err)
 	}
 	if !homeFolder.IsDir() {
-		return nil, fmt.Errorf("'%s' is not a valid directory", home)
+		return nil, fmt.Errorf("'%s' is not a valid directory", envHome)
 	}
 
-	repositoriesLocation := os.Getenv(EnvRepositoriesHome)
-	if len(repositoriesLocation) == 0 {
-		repositoriesLocation = path.Join(root, "repositories")
+	if len(envRepos) == 0 {
+		envRepos = path.Join(root, "repositories")
 	}
-	repoFolder, err := os.Stat(repositoriesLocation)
+	repoFolder, err := os.Stat(envRepos)
 	if err != nil {
 		return nil, fmt.Errorf("cannot stat '%s': %s", root, err.Error())
 	}
 	if !repoFolder.IsDir() {
-		return nil, fmt.Errorf("'%s' is not a valid directory", repositoriesLocation)
+		return nil, fmt.Errorf("'%s' is not a valid directory", envRepos)
 	}
+
+	zap.L().Sugar().Infof("%s='%s'", EnvConfigServerHome, envHome)
+	zap.L().Sugar().Infof("%s='%s'", EnvConfigServerCfg, envCfg)
+	zap.L().Sugar().Infof("%s='%s'", EnvRepositoriesHome, envRepos)
 
 	v := viper.New()
 	v.AddConfigPath(root)
@@ -73,24 +82,25 @@ func ReadFromPath(configurationRoot string) (*Config, error) {
 
 	err = v.ReadInConfig()
 	if err != nil {
-		return nil, fmt.Errorf("error reading configserver.yaml from '%s': %s", root, err.Error())
+		return nil, fmt.Errorf("error reading configserver.yaml from '%s' %w", root, err)
 	}
 
 	conf := &Config{
 		ListenOn:                     ":8090",
 		CacheEvictorIntervalSeconds:  10,
 		CacheStorageSeconds:          30,
-		Home:                         home,
-		RepositoriesCheckoutLocation: repositoriesLocation,
+		Home:                         envHome,
+		RepositoriesCheckoutLocation: envRepos,
 		LoadedFrom:                   path.Join(root, "configserver.yaml"),
 	}
 	err = v.Unmarshal(&conf)
 	if err != nil {
-		return nil, fmt.Errorf("error reading configserver.yaml from '%s': %s", root, err.Error())
+		return nil, fmt.Errorf("error reading configserver.yaml from '%s': %w", root, err)
 	}
 	return conf, nil
 }
 
+// Config stores all the supported configuration options for a ConfigServer Instance
 type Config struct {
 	ListenOn                     string
 	CacheEvictorIntervalSeconds  int

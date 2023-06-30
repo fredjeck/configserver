@@ -28,7 +28,7 @@ var (
 
 // NewMemoryCache Instantiates a new memory cache which automatically evicts entries after the given retention period
 // evictorRunInterval controls the interval at which the cache evictor runs
-func NewMemoryCache(evictorRunInterval time.Duration, logger *zap.Logger) *MemoryCache {
+func NewMemoryCache(evictorRunInterval time.Duration) *MemoryCache {
 	cache := &MemoryCache{
 		entries: make(map[uint64]cacheEntry),
 		stop:    make(chan struct{}),
@@ -37,7 +37,7 @@ func NewMemoryCache(evictorRunInterval time.Duration, logger *zap.Logger) *Memor
 	cache.waitGroup.Add(1)
 	go func(interval time.Duration) {
 		defer cache.waitGroup.Done()
-		logger.Sugar().Infof("Memory cache created (cache evictor interval set to %d seconds)", interval)
+		zap.L().Sugar().Infof("Memory cache created (cache evictor interval set to %d seconds)", interval)
 		cache.startEvictor(interval)
 	}(evictorRunInterval)
 

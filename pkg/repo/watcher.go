@@ -14,18 +14,16 @@ import (
 type RepositoryWatcher struct {
 	repository *config.Repository
 	localPath  string
-	logger     *zap.Logger
 	uplink     chan RepositoryUpdateEvent
 }
 
 // NewWatcher uses the provided repository configuration to periodically pulls the repository
 // to the path pointed by localPath.
 // If and error occurs, provides a detailed output in the logs
-func NewWatcher(repo *config.Repository, localPath string, logger *zap.Logger, uplink chan RepositoryUpdateEvent) *RepositoryWatcher {
+func NewWatcher(repo *config.Repository, localPath string, uplink chan RepositoryUpdateEvent) *RepositoryWatcher {
 	return &RepositoryWatcher{
 		repository: repo,
 		localPath:  localPath,
-		logger:     logger,
 		uplink:     uplink,
 	}
 }
@@ -44,7 +42,7 @@ func (w *RepositoryWatcher) broadcast(last time.Time, next time.Time, error stri
 }
 
 func (w *RepositoryWatcher) watchInternal() {
-	log := w.logger.With(zap.String("repository.name", w.repository.Name)).With(zap.String("repository.url", w.repository.Url)).With(zap.String("repository.localPath", w.localPath))
+	log := zap.L().With(zap.String("repository.name", w.repository.Name)).With(zap.String("repository.url", w.repository.Url)).With(zap.String("repository.localPath", w.localPath))
 	for {
 		last := time.Now()
 		next := time.Now()

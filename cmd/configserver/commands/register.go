@@ -3,6 +3,7 @@ package commands
 import (
 	"github.com/fredjeck/configserver/pkg/auth"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 
 	"github.com/spf13/cobra"
 )
@@ -29,18 +30,18 @@ func registerClient(cmd *cobra.Command, _ []string) {
 	}
 	repo, err := cmd.Flags().GetStringSlice("repositories")
 	if len(repo) == 0 || err != nil {
-		Logger.Sugar().Fatal("Missing mandatory argument : repositories")
+		zap.L().Sugar().Fatal("Missing mandatory argument : repositories")
 	}
 
 	spec := auth.NewClientSpec(clientId, repo)
 
 	secret, err := spec.ClientSecret(Key)
 	if err != nil {
-		Logger.Sugar().Fatalf("Unable to generate client secret for %s : %s", clientId, err.Error())
+		zap.L().Sugar().Fatalf("Unable to generate client secret for %s : %s", clientId, err.Error())
 	}
 
-	Logger.Sugar().Infof("Repository: %s", repo)
-	Logger.Sugar().Infof("ClientId: %s", clientId)
-	Logger.Sugar().Infof("ClientSecret: %s", secret)
-	Logger.Sugar().Info("Please store the client secret carefully and do not forget to register the ClientID in the configserver.yaml file")
+	zap.L().Sugar().Infof("Repository: %s", repo)
+	zap.L().Sugar().Infof("ClientId: %s", clientId)
+	zap.L().Sugar().Infof("ClientSecret: %s", secret)
+	zap.L().Sugar().Info("Please store the client secret carefully and do not forget to register the ClientID in the configserver.yaml file")
 }

@@ -8,12 +8,10 @@ import (
 	"time"
 
 	"github.com/fredjeck/configserver/pkg/config"
-	"go.uber.org/zap"
 )
 
 type RepositoryManager struct {
 	repositoriesRoot string
-	logger           *zap.Logger
 	Repositories     map[string]*RepositoryHandle
 	heartbeat        chan RepositoryUpdateEvent
 }
@@ -44,7 +42,7 @@ var (
 )
 
 // NewManager creates a new repository manager
-func NewManager(conf *config.Config, logger *zap.Logger) *RepositoryManager {
+func NewManager(conf *config.Config) *RepositoryManager {
 	r := make(map[string]*RepositoryHandle)
 	for _, v := range conf.Repositories {
 		r[v.Name] = &RepositoryHandle{
@@ -60,7 +58,6 @@ func NewManager(conf *config.Config, logger *zap.Logger) *RepositoryManager {
 	return &RepositoryManager{
 		Repositories:     r,
 		repositoriesRoot: conf.RepositoriesCheckoutLocation,
-		logger:           logger,
 		heartbeat:        make(chan RepositoryUpdateEvent),
 	}
 }
@@ -77,7 +74,7 @@ func (mgr *RepositoryManager) Checkout() error {
 
 	for _, repository := range mgr.Repositories {
 		repositoryPath := path.Join(mgr.repositoriesRoot, repository.Configuration.Name)
-		NewWatcher(&repository.Configuration, repositoryPath, mgr.logger, mgr.heartbeat).Watch()
+		NewWatcher(&repository.Configuration, repositoryPath, mgr.heartbeat).Watch()
 	}
 	go mgr.ReadUpdates()
 	return nil

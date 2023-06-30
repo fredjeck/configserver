@@ -2,6 +2,7 @@ package commands
 
 import (
 	b64 "encoding/base64"
+	"go.uber.org/zap"
 	"path"
 
 	"github.com/fredjeck/configserver/pkg/encrypt"
@@ -23,28 +24,28 @@ func init() {
 }
 
 func keygen(cmd *cobra.Command, _ []string) {
-	Logger.Sugar().Info(`If an encryption key exists and is in use, running keygen will overwrite any existing key - rendering currently served configuration useless.
+	zap.L().Sugar().Info(`If an encryption key exists and is in use, running keygen will overwrite any existing key - rendering currently served configuration useless.
 You will need to rehash any encrypted sensitive values in your configuration files`)
 
 	key := encrypt.NewEncryptionKey()
 	encoded := b64.StdEncoding.EncodeToString(key[:])
 
-	Logger.Sugar().Infof("Generated key is (base64) %s", encoded)
+	zap.L().Sugar().Infof("Generated key is (base64) %s", encoded)
 	target := path.Join(Configuration.Home, "encryption.key")
 
 	dr, err := cmd.Flags().GetBool("dry-run")
 	if err != nil {
-		Logger.Sugar().Panicf("Unable to parse the command line: %s", err)
+		zap.L().Sugar().Panicf("Unable to parse the command line: %s", err)
 	}
 
 	if dr {
-		Logger.Sugar().Infof("If dry-run would have been set to false, the encryption key would have been written to  '%s'", target)
+		zap.L().Sugar().Infof("If dry-run would have been set to false, the encryption key would have been written to  '%s'", target)
 		return
 	}
 
 	err = encrypt.StoreEncryptionKey(key, Configuration.EncryptionKeyPath())
 	if err != nil {
-		Logger.Sugar().Errorf("Cannot create keyfile: %s", err.Error())
+		zap.L().Sugar().Errorf("Cannot create keyfile: %s", err.Error())
 	}
-	Logger.Sugar().Infof("Keyfile generated to '%s'", target)
+	zap.L().Sugar().Infof("Keyfile generated to '%s'", target)
 }

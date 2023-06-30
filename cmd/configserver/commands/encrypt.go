@@ -3,6 +3,7 @@ package commands
 import (
 	"github.com/fredjeck/configserver/pkg/encrypt"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
 var EncryptCommand = &cobra.Command{
@@ -20,12 +21,12 @@ func init() {
 func encryptValue(cmd *cobra.Command, _ []string) {
 	value, err := cmd.Flags().GetString("value")
 	if len(value) == 0 || err != nil {
-		Logger.Sugar().Fatal("Missing mandatory argument : value")
+		zap.L().Sugar().Fatal("Missing mandatory argument : value")
 	}
 
 	enc, err := encrypt.NewEncryptedToken([]byte(value), Key)
 	if err != nil {
-		Logger.Sugar().Fatalf("an error occured while encrypting the provided value: %s", err.Error())
+		zap.L().Sugar().Fatalf("an error occured while encrypting the provided value: %s", err.Error())
 	}
-	Logger.Sugar().Infof("Encrypted token: %s", enc)
+	zap.L().Sugar().Infof("Encrypted token: %s", enc)
 }
