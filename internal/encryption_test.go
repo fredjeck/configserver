@@ -42,3 +42,27 @@ func TestTokenEncryption(t *testing.T) {
 	assert.NoError(t, derr, "Token cannot be decrypted")
 	assert.Equal(t, text, dec)
 }
+
+func TestInvalidTokenDecryption(t *testing.T) {
+	key := NewEncryptionKey()
+	token := "{e:abc}"
+
+	_, derr := DecryptToken(token, key)
+	assert.Error(t, derr)
+}
+
+func TestZeroLengthTokenDecryption(t *testing.T) {
+	key := NewEncryptionKey()
+	token := ""
+
+	_, derr := DecryptToken(token, key)
+	assert.Error(t, derr)
+}
+
+func TestInvalidPayloadTokenDecryption(t *testing.T) {
+	key := NewEncryptionKey()
+	token := "{enc:ABCDEFG}"
+
+	_, derr := DecryptToken(token, key)
+	assert.Error(t, derr)
+}
