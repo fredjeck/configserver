@@ -1,10 +1,12 @@
 package commands
 
 import (
+	"log/slog"
+	"os"
+
 	"github.com/fredjeck/configserver/internal/config"
 	"github.com/fredjeck/configserver/internal/server"
 	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 )
 
 var (
@@ -29,15 +31,21 @@ func Run(args []string) error {
 	return ConfigServerCommand.Execute()
 }
 
+// initialize loads the configuration and prepares configserver for running
 func initialize() {
 	config.InitLogging()
 	Configuration, lastError = config.LoadFrom(configurationFilePath)
+	slog.Info("Environment",
+		config.EnvConfigServerEnvironment, Configuration.Environment.Kind,
+	)
+
 	if lastError != nil {
-		zap.L().Sugar().Fatal("ConfigServer was not able to start due to missing or invalid configuration file: ", lastError)
+		slog.Error("ConfigServer was not able to start due to missing or invalid configuration file", "err", lastError)
+		os.Exit(1)
 	}
 }
 
 func startServer(_ *cobra.Command, _ []string) {
-	zap.L().Sugar().Infof("Starting ConfigServer ...")
+	slog.Info("Starting ConfigServer ...")
 	server.New(Configuration)
 }
