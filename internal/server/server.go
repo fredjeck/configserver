@@ -2,6 +2,7 @@
 package server
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -35,8 +36,8 @@ func (server *ConfigServer) Start() {
 	// router.HandleFunc("/api/register", server.registerClient)
 	router.Handle("/metrics", promhttp.Handler())
 
-	slog.Info("Now listening on", slog.String("port", ":8080"))
-	err := http.ListenAndServe(":8080", loggingMiddleware(router))
+	slog.Info(fmt.Sprintf("Listening on %s", server.configuration.Server.ListenOn))
+	err := http.ListenAndServe(server.configuration.Server.ListenOn, loggingMiddleware(router))
 	if err != nil {
 		slog.Error("error starting configserver:", err.Error())
 		panic("")

@@ -29,16 +29,27 @@ func LoadFrom(path string) (*Configuration, error) {
 		Environment: &Environment{
 			Kind: strings.ToLower(os.Getenv(EnvConfigServerEnvironment)),
 		},
+		Server: &Server{
+			ListenOn: ":8080",
+		},
 	}
 	return config, nil
 }
 
 // Configuration groups all the supported configuration options
 type Configuration struct {
+	// Environment variables for ease of use
 	*Environment
+	// Server related settings
+	*Server
 }
 
 // Environment gathers all the environment variable used by ConfigServer
 type Environment struct {
-	Kind string
+	Kind string // environment kind (dev, int, prod)
+}
+
+// Server groups all the configserver related settings
+type Server struct {
+	ListenOn string // address and port on which the server will listen for incoming requests
 }

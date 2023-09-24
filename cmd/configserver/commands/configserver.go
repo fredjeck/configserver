@@ -17,7 +17,7 @@ var (
 		Run:   startServer,
 	}
 	configurationFilePath string
-	Configuration         *config.Configuration
+	configuration         *config.Configuration
 	lastError             error
 )
 
@@ -34,9 +34,9 @@ func Run(args []string) error {
 // initialize loads the configuration and prepares configserver for running
 func initialize() {
 	config.InitLogging()
-	Configuration, lastError = config.LoadFrom(configurationFilePath)
+	configuration, lastError = config.LoadFrom(configurationFilePath)
 	slog.Info("Environment",
-		config.EnvConfigServerEnvironment, Configuration.Environment.Kind,
+		config.EnvConfigServerEnvironment, configuration.Environment.Kind,
 	)
 
 	if lastError != nil {
@@ -47,5 +47,5 @@ func initialize() {
 
 func startServer(_ *cobra.Command, _ []string) {
 	slog.Info("Starting ConfigServer ...")
-	server.New(Configuration).Start()
+	server.New(configuration).Start()
 }
