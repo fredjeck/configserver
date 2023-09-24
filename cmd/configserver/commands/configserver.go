@@ -47,5 +47,5 @@ func initialize() {
 
 func startServer(_ *cobra.Command, _ []string) {
 	slog.Info("Starting ConfigServer ...")
-	server.New(Configuration)
+	server.New(Configuration).Start()
 }
