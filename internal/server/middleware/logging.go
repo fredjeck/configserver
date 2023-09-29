@@ -1,4 +1,4 @@
-// Package middleware contains all the middleware used by configserver
+// Package middleware contains all the middlewares used by configserver
 package middleware
 
 import (
@@ -54,7 +54,7 @@ func RequestLoggingMiddleware() func(http.Handler) http.Handler {
 			wrapped := wrapResponseWriter(w)
 			next.ServeHTTP(wrapped, r)
 			elapsed := time.Since(start)
-			message := fmt.Sprintf("%s %s %d %s", r.Method, r.URL.EscapedPath(), wrapped.status, elapsed)
+			message := fmt.Sprintf("%s '%s' responded %d in %s", r.Method, r.URL.EscapedPath(), wrapped.status, elapsed)
 			slog.Info(message,
 				slog.Int("http.status", wrapped.status),
 				slog.String("http.method", r.Method),

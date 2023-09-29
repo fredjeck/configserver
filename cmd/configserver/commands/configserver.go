@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/fredjeck/configserver/internal/config"
+	"github.com/fredjeck/configserver/internal/encrypt"
 	"github.com/fredjeck/configserver/internal/server"
 	"github.com/spf13/cobra"
 )
@@ -47,5 +48,5 @@ func initialize() {
 
 func startServer(_ *cobra.Command, _ []string) {
 	slog.Info("Starting ConfigServer ...")
-	server.New(configuration).Start()
+	server.New(configuration, encrypt.NewEncryptionKey()).Start()
 }
