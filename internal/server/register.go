@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 
 	"github.com/fredjeck/configserver/internal/server/auth"
@@ -62,5 +63,6 @@ func (server *ConfigServer) registerClient(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
+	slog.Debug("New client secret generated", "clientID", registerRequest.ClientID)
 	server.writeResponse(http.StatusOK, values, w)
 }

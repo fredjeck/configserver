@@ -12,11 +12,15 @@ import (
 func InitLogging() {
 	env := strings.ToLower(os.Getenv(EnvConfigServerEnvironment))
 
+	opts := &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}
+
 	var logger *slog.Logger
 	if strings.Contains(env, "dev") {
-		logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
+		logger = slog.New(slog.NewTextHandler(os.Stdout, opts))
 	} else {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, opts))
 	}
 
 	slog.SetDefault(logger)
