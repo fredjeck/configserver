@@ -34,9 +34,9 @@ func (server *ConfigServer) Start() {
 	router := http.NewServeMux()
 	loggingMiddleware := middleware.RequestLoggingMiddleware()
 
-	// router.HandleFunc("/api/encrypt", server.encryptValue)
 	// router.HandleFunc("/api/stats", server.statistics)
 	// router.HandleFunc("/api/repositories", server.listRepositories)
+	router.HandleFunc("/api/encrypt", server.encryptValue)
 	router.HandleFunc("/api/register", server.registerClient)
 	router.Handle("/metrics", promhttp.Handler())
 
