@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/fredjeck/configserver/internal/server/auth"
+	"github.com/fredjeck/configserver/internal/auth"
 	"github.com/google/uuid"
 )
 

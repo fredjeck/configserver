@@ -45,6 +45,8 @@ func (server *ConfigServer) Start() {
 	// router.HandleFunc("/api/repositories", server.listRepositories)
 	router.HandleFunc("/api/encrypt", server.encryptValue)
 	router.HandleFunc("/api/register", server.registerClient)
+	router.HandleFunc("/api/keygen/aes", server.GenAes256)
+	router.HandleFunc("/api/keygen/hmac", server.GenHmacSha256)
 	router.Handle("/metrics", promhttp.Handler())
 
 	slog.Info(fmt.Sprintf("Now istening on %s", server.configuration.Server.ListenOn))
