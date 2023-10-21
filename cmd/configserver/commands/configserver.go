@@ -48,5 +48,6 @@ func initialize() {
 
 func startServer(_ *cobra.Command, _ []string) {
 	slog.Info("Starting ConfigServer ...")
-	server.New(configuration, encrypt.NewEncryptionKey()).Start()
+	key, _ := encrypt.NewAes256Key()
+	server.New(configuration, key).Start()
 }

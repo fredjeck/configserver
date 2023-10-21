@@ -11,7 +11,7 @@ import (
 )
 
 func TestCreateGenerateSecret(t *testing.T) {
-	key := encrypt.NewEncryptionKey()
+	key, _ := encrypt.NewAes256Key()
 	spec := NewClientKeySpec("clientid", []string{"repo1", "repo2"})
 	secret, err := spec.GenerateSecret(key)
 
@@ -20,7 +20,7 @@ func TestCreateGenerateSecret(t *testing.T) {
 }
 
 func TestUnmarshalGenerateSecret(t *testing.T) {
-	key := encrypt.NewEncryptionKey()
+	key, _ := encrypt.NewAes256Key()
 	spec := NewClientKeySpec("clientid", []string{"repo1", "repo2"})
 	secret, _ := spec.GenerateSecret(key)
 
@@ -33,7 +33,7 @@ func TestUnmarshalGenerateSecret(t *testing.T) {
 }
 
 func TestClientKeySpecFromBasicAuth(t *testing.T) {
-	key := encrypt.NewEncryptionKey()
+	key, _ := encrypt.NewAes256Key()
 	spec := NewClientKeySpec("clientid", []string{"repo1", "repo2"})
 	secret, _ := spec.GenerateSecret(key)
 	auth := b64.StdEncoding.EncodeToString([]byte("clientid:" + secret))
@@ -50,7 +50,7 @@ func TestClientKeySpecFromBasicAuth(t *testing.T) {
 }
 
 func TestAuthRequired(t *testing.T) {
-	key := encrypt.NewEncryptionKey()
+	key, _ := encrypt.NewAes256Key()
 	request, _ := http.NewRequest("GET", "/", nil)
 
 	unmarshalled, err := ClientKeySpecFromBasicAuth(*request, key)
@@ -59,7 +59,7 @@ func TestAuthRequired(t *testing.T) {
 }
 
 func TestCorruptedAuth(t *testing.T) {
-	key := encrypt.NewEncryptionKey()
+	key, _ := encrypt.NewAes256Key()
 	request, _ := http.NewRequest("GET", "/", nil)
 	request.Header.Add("Authorization", "Basic randomstringwithoutcolon")
 
@@ -69,7 +69,7 @@ func TestCorruptedAuth(t *testing.T) {
 }
 
 func TestUnauthorized(t *testing.T) {
-	key := encrypt.NewEncryptionKey()
+	key, _ := encrypt.NewAes256Key()
 	spec := NewClientKeySpec("clientid", []string{"repo1", "repo2"})
 	secret, _ := spec.GenerateSecret(key)
 	auth := b64.StdEncoding.EncodeToString([]byte("wrongclientid:" + secret))

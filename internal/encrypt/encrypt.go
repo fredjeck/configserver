@@ -1,21 +1,15 @@
-// cryptopasta - basic cryptography examples
-//
+// Package encrypt based on cryptopasta - basic cryptography examples
 // Written in 2015 by George Tankersley <george.tankersley@gmail.com>
 //
-// To the extent possible under law, the author(s) have dedicated all copyright
-// and related and neighboring rights to this software to the public domain
-// worldwide. This software is distributed without any warranty.
-//
-// You should have received a copy of the CC0 Public Domain Dedication along
-// with this software. If not, see // <http://creativecommons.org/publicdomain/zero/1.0/>.
-
-// Package encrypt symmetric authenticated encryption using 256-bit AES-GCM with a random nonce.
+// Slightly modified by FredJeck to add support for HmacSha256 and various other things
 package encrypt
 
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	b64 "encoding/base64"
 	"errors"
 	"fmt"
@@ -24,21 +18,43 @@ import (
 	"regexp"
 )
 
-// NewEncryptionKey generates a random 256-bit key for Encrypt() and
-// Decrypt(). It panics if the source of randomness fails.
-func NewEncryptionKey() *[32]byte {
+// Aes256Key is an Alias for AES256 operations required a secret key
+type Aes256Key *[32]byte
+
+// HmacSha256Secret is an alias for Hmac256 secret key
+type HmacSha256Secret *[64]byte
+
+// NewAes256Key generates a random 256-bit key
+func NewAes256Key() (Aes256Key, error) {
 	key := [32]byte{}
 	_, err := io.ReadFull(rand.Reader, key[:])
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return &key
+	return &key, nil
 }
 
-// Encrypt encrypts data using 256-bit AES-GCM.  This both hides the content of
+// NewHmacSha256Secret generates a random 512-bit secret
+func NewHmacSha256Secret() (HmacSha256Secret, error) {
+	key := [64]byte{}
+	_, err := io.ReadFull(rand.Reader, key[:])
+	if err != nil {
+		return nil, err
+	}
+	return &key, nil
+}
+
+// HmacSha256Hash generates an HmacSha256 Hash from the provided data and secret
+func HmacSha256Hash(data []byte, secret HmacSha256Secret) []byte {
+	hmac := hmac.New(sha256.New, secret[:])
+	hmac.Write(data)
+	return hmac.Sum(nil)
+}
+
+// AesEncrypt encrypts data using 256-bit AES-GCM.  This both hides the content of
 // the data and provides a check that it hasn't been altered. Output takes the
 // form nonce|ciphertext|tag where '|' indicates concatenation.
-func Encrypt(plaintext []byte, key *[32]byte) (ciphertext []byte, err error) {
+func AesEncrypt(plaintext []byte, key Aes256Key) (ciphertext []byte, err error) {
 	block, err := aes.NewCipher(key[:])
 	if err != nil {
 		return nil, err
@@ -58,10 +74,10 @@ func Encrypt(plaintext []byte, key *[32]byte) (ciphertext []byte, err error) {
 	return gcm.Seal(nonce, nonce, plaintext, nil), nil
 }
 
-// Decrypt decrypts data using 256-bit AES-GCM.  This both hides the content of
+// AesDecrypt decrypts data using 256-bit AES-GCM.  This both hides the content of
 // the data and provides a check that it hasn't been altered. Expects input
 // form nonce|ciphertext|tag where '|' indicates concatenation.
-func Decrypt(ciphertext []byte, key *[32]byte) (plaintext []byte, err error) {
+func AesDecrypt(ciphertext []byte, key Aes256Key) (plaintext []byte, err error) {
 	block, err := aes.NewCipher(key[:])
 	if err != nil {
 		return nil, err
@@ -85,12 +101,16 @@ func Decrypt(ciphertext []byte, key *[32]byte) (plaintext []byte, err error) {
 
 // ReadEncryptionKey reads the encryption key stored at the provided location.
 // If createIfMissing is set to true, this function will attempt to create a new key if the file cannot be found
-func ReadEncryptionKey(keyFilePath string, createIfMissing bool) (*[32]byte, error) {
+func ReadEncryptionKey(keyFilePath string, createIfMissing bool) (Aes256Key, error) {
 	key := [32]byte{}
 
 	if _, err := os.Stat(keyFilePath); os.IsNotExist(err) {
 		if createIfMissing {
-			err := StoreEncryptionKey(NewEncryptionKey(), keyFilePath)
+			key, err := NewAes256Key()
+			if err != nil {
+				return nil, err
+			}
+			err = StoreEncryptionKey(key, keyFilePath)
 			if err != nil {
 				return nil, err
 			}
@@ -115,7 +135,7 @@ func ReadEncryptionKey(keyFilePath string, createIfMissing bool) (*[32]byte, err
 
 // StoreEncryptionKey stores the encryption key at the provided location
 // Encryption keys are stored base 64 encoded
-func StoreEncryptionKey(key *[32]byte, keyFilePath string) error {
+func StoreEncryptionKey(key Aes256Key, keyFilePath string) error {
 	encoded := b64.StdEncoding.EncodeToString(key[:])
 	err := os.WriteFile(keyFilePath, []byte(encoded), 0644)
 	if err != nil {
@@ -126,8 +146,8 @@ func StoreEncryptionKey(key *[32]byte, keyFilePath string) error {
 
 // NewEncryptedToken encrypts the provided text into a substitution token
 // Substition tokens are
-func NewEncryptedToken(plaintext []byte, key *[32]byte) (string, error) {
-	enc, err := Encrypt(plaintext, key)
+func NewEncryptedToken(plaintext []byte, key Aes256Key) (string, error) {
+	enc, err := AesEncrypt(plaintext, key)
 	if err != nil {
 		return "", err
 	}
@@ -138,7 +158,7 @@ func NewEncryptedToken(plaintext []byte, key *[32]byte) (string, error) {
 var reTokenContent = regexp.MustCompile(`\{enc:(.*?)\}`)
 
 // DecryptToken extracts the payload from the provided substition token and decrypts its value using the given key
-func DecryptToken(token string, key *[32]byte) ([]byte, error) {
+func DecryptToken(token string, key Aes256Key) ([]byte, error) {
 	if len(token) == 0 {
 		return nil, errors.New("Invalid token size 0")
 	}
@@ -153,7 +173,7 @@ func DecryptToken(token string, key *[32]byte) ([]byte, error) {
 		return nil, errors.New("Token cannot be decoded")
 	}
 
-	value, derr := Decrypt(decoded, key)
+	value, derr := AesDecrypt(decoded, key)
 	if derr != nil {
 		return nil, errors.New("Unable to decrypt the token's content")
 	}

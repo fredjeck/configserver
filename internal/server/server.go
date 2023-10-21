@@ -2,6 +2,7 @@
 package server
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -9,6 +10,7 @@ import (
 	"os"
 
 	"github.com/fredjeck/configserver/internal/config"
+	"github.com/fredjeck/configserver/internal/encrypt"
 	"github.com/fredjeck/configserver/internal/server/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -16,11 +18,11 @@ import (
 // ConfigServer is a simple HTTP server allowing to securely expose the files provided by the underlying git repositories configuration.
 type ConfigServer struct {
 	configuration *config.Configuration
-	key           *[32]byte
+	key           encrypt.Aes256Key
 }
 
 // New creates a new instance of ConfigServer using the supplioed configuration
-func New(configuration *config.Configuration, key *[32]byte) *ConfigServer {
+func New(configuration *config.Configuration, key encrypt.Aes256Key) *ConfigServer {
 	return &ConfigServer{configuration: configuration, key: key}
 }
 
@@ -31,8 +33,13 @@ func New(configuration *config.Configuration, key *[32]byte) *ConfigServer {
 // - Adds support for request logging and prometheus metrics
 func (server *ConfigServer) Start() {
 
+	secret, _ := encrypt.NewHmacSha256Secret()
+
+	slog.Info("Secret", "secret", base64.StdEncoding.EncodeToString(secret[:]))
+
 	router := http.NewServeMux()
 	loggingMiddleware := middleware.RequestLoggingMiddleware()
+	bearerTokenMiddleware := middleware.BearerTokenMiddleware(secret)
 
 	// router.HandleFunc("/api/stats", server.statistics)
 	// router.HandleFunc("/api/repositories", server.listRepositories)
@@ -41,9 +48,9 @@ func (server *ConfigServer) Start() {
 	router.Handle("/metrics", promhttp.Handler())
 
 	slog.Info(fmt.Sprintf("Now istening on %s", server.configuration.Server.ListenOn))
-	err := http.ListenAndServe(server.configuration.Server.ListenOn, loggingMiddleware(router))
+	err := http.ListenAndServe(server.configuration.Server.ListenOn, loggingMiddleware(bearerTokenMiddleware(router)))
 	if err != nil {
-		slog.Error("error starting configserver:", err.Error())
+		slog.Error("error starting configserver:", "error", err)
 		os.Exit(1)
 	}
 }
@@ -66,7 +73,7 @@ func (server *ConfigServer) writeError(status int, w http.ResponseWriter, messag
 	}
 	j, err := json.Marshal(serverError)
 	if err != nil {
-		slog.Error("cannot convert error to Json: %s", err.Error)
+		slog.Error("cannot convert error to Json", "error", err.Error)
 	} else {
 		_, _ = w.Write(j)
 	}

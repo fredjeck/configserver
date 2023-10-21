@@ -30,8 +30,8 @@ type ClientKeySpec struct {
 // Values are separated by colons (":')
 // [0] - Bound repositories name
 // [1] - Client ID
-func (spec *ClientKeySpec) GenerateSecret(key *[32]byte) (string, error) {
-	secret, err := encrypt.Encrypt([]byte(fmt.Sprintf("%s%s%s", strings.Join(spec.Repositories, "|"), keySpecItemSeparatorChar, spec.ClientID)), key)
+func (spec *ClientKeySpec) GenerateSecret(key encrypt.Aes256Key) (string, error) {
+	secret, err := encrypt.AesEncrypt([]byte(fmt.Sprintf("%s%s%s", strings.Join(spec.Repositories, "|"), keySpecItemSeparatorChar, spec.ClientID)), key)
 	if err != nil {
 		return "", err
 	}
@@ -54,13 +54,13 @@ func NewClientKeySpec(clientID string, repositories []string) *ClientKeySpec {
 }
 
 // ClientKeySpecFromSecret unmarshalls a ClientSpec out of a client secret
-func ClientKeySpecFromSecret(clientSecret string, key *[32]byte) (*ClientKeySpec, error) {
+func ClientKeySpecFromSecret(clientSecret string, key encrypt.Aes256Key) (*ClientKeySpec, error) {
 	bytes, err := b64.StdEncoding.DecodeString(clientSecret)
 	if err != nil {
 		return nil, err
 	}
 
-	secret, err := encrypt.Decrypt(bytes, key)
+	secret, err := encrypt.AesDecrypt(bytes, key)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ var (
 )
 
 // ClientKeySpecFromBasicAuth ensures basic auth is enabled on the inbound request and validates the ClientID and Client Secret
-func ClientKeySpecFromBasicAuth(r http.Request, key *[32]byte) (*ClientKeySpec, error) {
+func ClientKeySpecFromBasicAuth(r http.Request, key encrypt.Aes256Key) (*ClientKeySpec, error) {
 	authorization := r.Header.Get("Authorization")
 	if len(authorization) == 0 {
 		return nil, ErrorAuthRequired
