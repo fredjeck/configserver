@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/fredjeck/configserver/internal/config"
-	"github.com/fredjeck/configserver/internal/encrypt"
+	"github.com/fredjeck/configserver/internal/encryption"
 	"github.com/fredjeck/configserver/internal/server"
 	"github.com/spf13/cobra"
 )
@@ -36,10 +36,7 @@ func Run(args []string) error {
 func initialize() {
 	config.InitLogging()
 	configuration, lastError = config.LoadFrom(configurationFilePath)
-	slog.Info("Environment",
-		config.EnvConfigServerEnvironment, configuration.Environment.Kind,
-	)
-
+	configuration.LogEnvironment()
 	if lastError != nil {
 		slog.Error("ConfigServer was not able to start due to missing or invalid configuration file", "err", lastError)
 		os.Exit(1)
@@ -48,6 +45,6 @@ func initialize() {
 
 func startServer(_ *cobra.Command, _ []string) {
 	slog.Info("Starting ConfigServer ...")
-	key, _ := encrypt.NewAes256Key()
+	key, _ := encryption.NewAes256Key()
 	server.New(configuration, key).Start()
 }

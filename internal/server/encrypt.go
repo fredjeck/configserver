@@ -4,7 +4,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/fredjeck/configserver/internal/encrypt"
+	"github.com/fredjeck/configserver/internal/encryption"
 )
 
 func (server *ConfigServer) encryptValue(w http.ResponseWriter, req *http.Request) {
@@ -16,7 +16,7 @@ func (server *ConfigServer) encryptValue(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	token, err := encrypt.NewEncryptedToken(value, server.key)
+	token, err := encryption.NewEncryptedToken(value, server.key)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

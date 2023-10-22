@@ -1,8 +1,8 @@
-// Package encrypt based on cryptopasta - basic cryptography examples
+// Package encryption based on cryptopasta - basic cryptography examples
 // Written in 2015 by George Tankersley <george.tankersley@gmail.com>
 //
 // Slightly modified by FredJeck to add support for HmacSha256 and various other things
-package encrypt
+package encryption
 
 import (
 	"crypto/aes"

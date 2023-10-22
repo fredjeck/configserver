@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/fredjeck/configserver/internal/encrypt"
+	"github.com/fredjeck/configserver/internal/encryption"
 )
 
 // JSONWebTokenPayload represents the Payload part of a JWT
@@ -35,15 +35,15 @@ func NewJSONWebToken() *JSONWebToken {
 }
 
 // Pack generates the token by marshalling the content to JSON, formatting the output into b64UrlEncoded strings and by appending the token signature
-func (jwt *JSONWebToken) Pack(secret encrypt.HmacSha256Secret) string {
+func (jwt *JSONWebToken) Pack(secret encryption.HmacSha256Secret) string {
 	tk := jwt.token()
-	hash := encrypt.HmacSha256Hash([]byte(tk), secret)
+	hash := encryption.HmacSha256Hash([]byte(tk), secret)
 	b64Hash := base64.RawURLEncoding.EncodeToString(hash)
 	return fmt.Sprintf("%s.%s", tk, b64Hash)
 }
 
 // VerifySignature validates a token has been signed with the provided key
-func VerifySignature(token string, secret encrypt.HmacSha256Secret) error {
+func VerifySignature(token string, secret encryption.HmacSha256Secret) error {
 	components := strings.Split(token, ".")
 	if len(components) != 3 {
 		return fmt.Errorf("malformed jwt token - expecting three components only %d parts found", len(components))
@@ -52,7 +52,7 @@ func VerifySignature(token string, secret encrypt.HmacSha256Secret) error {
 	tk := components[0] + "." + components[1]
 	signature := components[2]
 
-	hash := encrypt.HmacSha256Hash([]byte(tk), secret)
+	hash := encryption.HmacSha256Hash([]byte(tk), secret)
 	b64Hash := base64.RawURLEncoding.EncodeToString(hash)
 
 	if strings.Compare(b64Hash, signature) != 0 {

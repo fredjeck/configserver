@@ -1,4 +1,4 @@
-package encrypt
+package encryption
 
 import (
 	"os"

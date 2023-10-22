@@ -10,7 +10,7 @@ import (
 	"os"
 
 	"github.com/fredjeck/configserver/internal/config"
-	"github.com/fredjeck/configserver/internal/encrypt"
+	"github.com/fredjeck/configserver/internal/encryption"
 	"github.com/fredjeck/configserver/internal/server/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -18,11 +18,11 @@ import (
 // ConfigServer is a simple HTTP server allowing to securely expose the files provided by the underlying git repositories configuration.
 type ConfigServer struct {
 	configuration *config.Configuration
-	key           encrypt.Aes256Key
+	key           encryption.Aes256Key
 }
 
 // New creates a new instance of ConfigServer using the supplioed configuration
-func New(configuration *config.Configuration, key encrypt.Aes256Key) *ConfigServer {
+func New(configuration *config.Configuration, key encryption.Aes256Key) *ConfigServer {
 	return &ConfigServer{configuration: configuration, key: key}
 }
 
@@ -33,7 +33,7 @@ func New(configuration *config.Configuration, key encrypt.Aes256Key) *ConfigServ
 // - Adds support for request logging and prometheus metrics
 func (server *ConfigServer) Start() {
 
-	secret, _ := encrypt.NewHmacSha256Secret()
+	secret, _ := encryption.NewHmacSha256Secret()
 
 	slog.Info("Secret", "secret", base64.StdEncoding.EncodeToString(secret[:]))
 

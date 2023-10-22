@@ -29,9 +29,21 @@ func InitLogging() {
 // LoadFrom loads the configuration file from the provided path
 // This method always return a Configuration object with at least the Environment configuration loaded
 func LoadFrom(path string) (*Configuration, error) {
+
+	kind := strings.ToLower(os.Getenv(EnvConfigServerEnvironment))
+	if len(kind) == 0 {
+		kind = "production"
+	}
+
+	keys := strings.ToLower(os.Getenv(EnvConfigServerKeysPath))
+	if len(keys) == 0 {
+		keys = "/var/run/configserver/keys"
+	}
+
 	config := &Configuration{
 		Environment: &Environment{
-			Kind: strings.ToLower(os.Getenv(EnvConfigServerEnvironment)),
+			Kind:     kind,
+			KeysPath: keys,
 		},
 		Server: &Server{
 			ListenOn: ":8080",
@@ -50,10 +62,19 @@ type Configuration struct {
 
 // Environment gathers all the environment variable used by ConfigServer
 type Environment struct {
-	Kind string // environment kind (dev, int, prod)
+	Kind     string // environment kind i,e dev, int, prod
+	KeysPath string // path where the various keys can be found
 }
 
 // Server groups all the configserver related settings
 type Server struct {
 	ListenOn string // address and port on which the server will listen for incoming requests
+}
+
+// LogEnvironment logs the current environment configuration
+func (c *Configuration) LogEnvironment() {
+	slog.Info("Configserver Runtime Environment",
+		EnvConfigServerEnvironment, c.Environment.Kind,
+		EnvConfigServerKeysPath, c.Environment.KeysPath,
+	)
 }

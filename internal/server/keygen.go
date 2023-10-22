@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/fredjeck/configserver/internal/encrypt"
+	"github.com/fredjeck/configserver/internal/encryption"
 )
 
 // KeyGenResponse represents the API's output
@@ -26,7 +26,7 @@ func (server *ConfigServer) GenAes256(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	key, err := encrypt.NewAes256Key()
+	key, err := encryption.NewAes256Key()
 
 	w.Header().Add("Content-Type", "application/json")
 	resp := &KeyGenResponse{Kind: "AES256", Key: base64.StdEncoding.EncodeToString(key[:])}
@@ -50,7 +50,7 @@ func (server *ConfigServer) GenHmacSha256(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	key, err := encrypt.NewHmacSha256Secret()
+	key, err := encryption.NewHmacSha256Secret()
 
 	w.Header().Add("Content-Type", "application/json")
 	resp := &KeyGenResponse{Kind: "HS256", Key: base64.StdEncoding.EncodeToString(key[:])}
