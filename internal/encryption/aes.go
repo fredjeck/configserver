@@ -7,22 +7,16 @@ package encryption
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/hmac"
 	"crypto/rand"
-	"crypto/sha256"
 	b64 "encoding/base64"
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 )
 
 // Aes256Key is an Alias for AES256 operations required a secret key
 type Aes256Key *[32]byte
-
-// HmacSha256Secret is an alias for Hmac256 secret key
-type HmacSha256Secret *[64]byte
 
 // NewAes256Key generates a random 256-bit key
 func NewAes256Key() (Aes256Key, error) {
@@ -32,23 +26,6 @@ func NewAes256Key() (Aes256Key, error) {
 		return nil, err
 	}
 	return &key, nil
-}
-
-// NewHmacSha256Secret generates a random 512-bit secret
-func NewHmacSha256Secret() (HmacSha256Secret, error) {
-	key := [64]byte{}
-	_, err := io.ReadFull(rand.Reader, key[:])
-	if err != nil {
-		return nil, err
-	}
-	return &key, nil
-}
-
-// HmacSha256Hash generates an HmacSha256 Hash from the provided data and secret
-func HmacSha256Hash(data []byte, secret HmacSha256Secret) []byte {
-	hmac := hmac.New(sha256.New, secret[:])
-	hmac.Write(data)
-	return hmac.Sum(nil)
 }
 
 // AesEncrypt encrypts data using 256-bit AES-GCM.  This both hides the content of
@@ -97,51 +74,6 @@ func AesDecrypt(ciphertext []byte, key Aes256Key) (plaintext []byte, err error) 
 		ciphertext[gcm.NonceSize():],
 		nil,
 	)
-}
-
-// ReadEncryptionKey reads the encryption key stored at the provided location.
-// If createIfMissing is set to true, this function will attempt to create a new key if the file cannot be found
-func ReadEncryptionKey(keyFilePath string, createIfMissing bool) (Aes256Key, error) {
-	key := [32]byte{}
-
-	if _, err := os.Stat(keyFilePath); os.IsNotExist(err) {
-		if createIfMissing {
-			key, err := NewAes256Key()
-			if err != nil {
-				return nil, err
-			}
-			err = StoreEncryptionKey(key, keyFilePath)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			return nil, err
-		}
-	}
-
-	base64, err := os.ReadFile(keyFilePath)
-	if err != nil {
-		return nil, err
-	}
-
-	decoded, err := b64.StdEncoding.DecodeString(string(base64))
-	if err != nil {
-		return nil, err
-	}
-
-	copy(key[:], decoded)
-	return &key, nil
-}
-
-// StoreEncryptionKey stores the encryption key at the provided location
-// Encryption keys are stored base 64 encoded
-func StoreEncryptionKey(key Aes256Key, keyFilePath string) error {
-	encoded := b64.StdEncoding.EncodeToString(key[:])
-	err := os.WriteFile(keyFilePath, []byte(encoded), 0644)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 // NewEncryptedToken encrypts the provided text into a substitution token

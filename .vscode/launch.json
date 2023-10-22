@@ -10,7 +10,10 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/main.go",
-            "args": [""]
+            "args": [""],
+            "env": {
+                "CONFIGSERVER_KEYS":"/home/fred/configserver_dev"
+            }
         },
         {
             "name": "AddClient",

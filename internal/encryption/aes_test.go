@@ -1,7 +1,6 @@
 package encryption
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,20 +15,6 @@ func TestEncryptAesDecrypt(t *testing.T) {
 	dec, derr := AesDecrypt(s, key)
 	assert.NoError(t, derr, "Decryption should not raise an error")
 	assert.EqualValues(t, text, dec)
-}
-
-func TestEncryptionKeyStorage(t *testing.T) {
-	keyfile, _ := os.CreateTemp("", "keyfile")
-	defer os.Remove(keyfile.Name())
-
-	key, _ := NewAes256Key()
-	_ = StoreEncryptionKey(key, keyfile.Name())
-
-	retrievedKey, err := ReadEncryptionKey(keyfile.Name(), false)
-	if err != nil {
-		t.Error(err)
-	}
-	assert.Equal(t, key, retrievedKey)
 }
 
 func TestTokenEncryption(t *testing.T) {
@@ -65,21 +50,4 @@ func TestInvalidPayloadTokenDecryption(t *testing.T) {
 
 	_, derr := DecryptToken(token, key)
 	assert.Error(t, derr)
-}
-
-func TestHmacSha256HashLength(t *testing.T) {
-	secret, _ := NewHmacSha256Secret()
-	data := "Wingardium Leviosa"
-
-	hash := HmacSha256Hash([]byte(data), secret)
-	assert.Len(t, hash, 32)
-}
-
-func TestHmacSha256Hash(t *testing.T) {
-	secret, _ := NewHmacSha256Secret()
-	data := "Wingardium Leviosa"
-
-	hash1 := HmacSha256Hash([]byte(data), secret)
-	hash2 := HmacSha256Hash([]byte(data), secret)
-	assert.Equal(t, hash1, hash2)
 }

@@ -19,6 +19,7 @@ var (
 	}
 	configurationFilePath string
 	configuration         *config.Configuration
+	keystore              *encryption.Keystore
 	lastError             error
 )
 
@@ -39,6 +40,12 @@ func initialize() {
 	configuration.LogEnvironment()
 	if lastError != nil {
 		slog.Error("ConfigServer was not able to start due to missing or invalid configuration file", "err", lastError)
+		os.Exit(1)
+	}
+
+	keystore, lastError = encryption.LoadKeyStoreFromPath(configuration.Environment.KeysPath)
+	if lastError != nil {
+		slog.Error("ConfigServer was not abke to load its keystore", "err", lastError)
 		os.Exit(1)
 	}
 }
