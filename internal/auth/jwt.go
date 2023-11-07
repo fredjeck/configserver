@@ -46,7 +46,7 @@ func (jwt *JSONWebToken) Pack(secret encryption.HmacSha256Secret) string {
 func VerifySignature(token string, secret encryption.HmacSha256Secret) error {
 	components := strings.Split(token, ".")
 	if len(components) != 3 {
-		return fmt.Errorf("malformed jwt token - expecting three components only %d parts found", len(components))
+		return fmt.Errorf("malformed jwt token - expecting three components but found %d parts", len(components))
 	}
 
 	tk := components[0] + "." + components[1]
@@ -69,9 +69,9 @@ func (jwt *JSONWebToken) token() string {
 }
 
 func jsonb64UrlEncode(e interface{}) (string, error) {
-	json, err := json.Marshal(e)
+	jsonStr, err := json.Marshal(e)
 	if err != nil {
 		return "", err
 	}
-	return base64.RawURLEncoding.EncodeToString(json), nil
+	return base64.RawURLEncoding.EncodeToString(jsonStr), nil
 }

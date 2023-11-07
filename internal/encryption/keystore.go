@@ -30,7 +30,7 @@ const (
 // Keystore is an utility struct storing the various keys and secret used by ConfigServer
 // This is a temporary solution which needs to be improved - me dont like it
 type Keystore struct {
-	AesAes256Key     Aes256Key
+	Aes256Key        Aes256Key
 	HmacSha256Secret HmacSha256Secret
 }
 
@@ -48,10 +48,10 @@ func LoadKeyStoreFromPath(path string) (*Keystore, error) {
 	aesKeyPath := filepath.Join(path, AesKeyFileName)
 	if _, err := os.Stat(aesKeyPath); errors.Is(err, os.ErrNotExist) {
 		slog.Warn(WarnKeyfileGenerated, "missing_key.path", aesKeyPath)
-		if store.AesAes256Key, err = NewAes256Key(); err != nil {
+		if store.Aes256Key, err = NewAes256Key(); err != nil {
 			return nil, err
 		}
-		if err := StoreKeyToPath(store.AesAes256Key[:], KindAes, aesKeyPath); err != nil {
+		if err := StoreKeyToPath(store.Aes256Key[:], KindAes, aesKeyPath); err != nil {
 			return nil, err
 		}
 	}
@@ -59,7 +59,7 @@ func LoadKeyStoreFromPath(path string) (*Keystore, error) {
 	if err != nil {
 		return nil, err
 	}
-	store.AesAes256Key = Aes256Key(aes)
+	store.Aes256Key = Aes256Key(aes)
 	slog.Info("Keyfile loaded", "keyfile.path", aesKeyPath)
 
 	shaKeyPath := filepath.Join(path, ShaKeyFileName)

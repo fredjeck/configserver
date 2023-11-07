@@ -16,7 +16,7 @@ func (server *ConfigServer) encryptValue(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	token, err := encryption.NewEncryptedToken(value, server.key)
+	token, err := encryption.NewEncryptedToken(value, server.keystore.Aes256Key)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

@@ -18,12 +18,12 @@ import (
 // ConfigServer is a simple HTTP server allowing to securely expose the files provided by the underlying git repositories configuration.
 type ConfigServer struct {
 	configuration *config.Configuration
-	key           encryption.Aes256Key
+	keystore      *encryption.Keystore
 }
 
 // New creates a new instance of ConfigServer using the supplioed configuration
-func New(configuration *config.Configuration, key encryption.Aes256Key) *ConfigServer {
-	return &ConfigServer{configuration: configuration, key: key}
+func New(configuration *config.Configuration, keystore *encryption.Keystore) *ConfigServer {
+	return &ConfigServer{configuration: configuration, keystore: keystore}
 }
 
 // Start starts the server
@@ -45,6 +45,7 @@ func (server *ConfigServer) Start() {
 	// router.HandleFunc("/api/repositories", server.listRepositories)
 	router.HandleFunc("/api/encrypt", server.encryptValue)
 	router.HandleFunc("/api/register", server.registerClient)
+	router.HandleFunc("/api/register/jwt", server.registerClientJwt)
 	router.HandleFunc("/api/keygen/aes", server.GenAes256)
 	router.HandleFunc("/api/keygen/hmac", server.GenHmacSha256)
 	router.Handle("/metrics", promhttp.Handler())
