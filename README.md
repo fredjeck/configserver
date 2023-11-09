@@ -10,4 +10,6 @@ go-configserver supports :
 - client base repository access
 - and much more to come
 
+```
 This repository is work in progress
+```
