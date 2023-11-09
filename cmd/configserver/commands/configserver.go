@@ -37,13 +37,15 @@ func Run(args []string) error {
 func initialize() {
 	config.InitLogging()
 	configuration, lastError = config.LoadFrom(configurationFilePath)
-	configuration.LogEnvironment()
+
 	if lastError != nil {
 		slog.Error("ConfigServer was not able to start due to missing or invalid configuration file", "err", lastError)
 		os.Exit(1)
 	}
 
-	keystore, lastError = encryption.LoadKeyStoreFromPath(configuration.Environment.KeysPath)
+	configuration.LogEnvironment()
+
+	keystore, lastError = encryption.LoadKeyStoreFromPath(configuration.CertsLocation)
 	if lastError != nil {
 		slog.Error("ConfigServer was not abke to load its keystore", "err", lastError)
 		os.Exit(1)

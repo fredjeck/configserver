@@ -16,4 +16,5 @@
 
 build/
 
-ui/dist
+
+/samples/home/certs/

@@ -1,0 +1,6 @@
+certs_location:  ./samples/home/certs
+server:
+  listen_on: ":8080"
+git:
+  repositories_checkout_location: ./samples/home/git
+  repositories_configuration_location: ./samples/home/repositories
