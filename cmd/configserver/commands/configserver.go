@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"github.com/fredjeck/configserver/internal/repository"
 	"log/slog"
 	"os"
 
@@ -47,7 +48,13 @@ func initialize() {
 
 	keystore, lastError = encryption.LoadKeyStoreFromPath(configuration.CertsLocation)
 	if lastError != nil {
-		slog.Error("ConfigServer was not abke to load its keystore", "err", lastError)
+		slog.Error("ConfigServer was not able to load its keystore", "err", lastError)
+		os.Exit(1)
+	}
+
+	_, lastError = repository.NewManager(configuration.GitConfiguration)
+	if lastError != nil {
+		slog.Error("ConfigServer was not able to start its GIT repository service", "err", lastError)
 		os.Exit(1)
 	}
 }

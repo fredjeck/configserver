@@ -10,6 +10,12 @@ import (
 	"strings"
 )
 
+// EnvConfigServerEnvironment holds the name of the environment variable storing the current active environment type (dev, int, prod ...)
+const EnvConfigServerEnvironment string = "CONFIGSERVER_ENV"
+
+// EnvConfigServerHome holds the path to the directory containing the application's config
+const EnvConfigServerHome string = "CONFIGSERVER_HOME"
+
 // InitLogging sets up logging based on the CONFIGSERVER_ENV environment variable.
 // JSON based logging will be automatically enabled if the environment name does not contain the "dev" substring
 func InitLogging() {
