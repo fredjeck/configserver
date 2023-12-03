@@ -12,11 +12,11 @@ func TestEncryptionKeyStorage(t *testing.T) {
 	defer os.Remove(keyfile.Name())
 
 	key, _ := NewAes256Key()
-	_ = StoreKeyToPath(key[:], KindSha, keyfile.Name())
+	_ = StoreKeyToPath(key.Key, KindSha, keyfile.Name())
 
 	retrievedKey, err := LoadKeyFromPath(keyfile.Name())
 	if err != nil {
 		t.Error(err)
 	}
-	assert.Equal(t, key, Aes256Key(retrievedKey))
+	assert.Equal(t, key.Key, retrievedKey)
 }

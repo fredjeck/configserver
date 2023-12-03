@@ -9,7 +9,7 @@ import (
 )
 
 // BearerTokenMiddleware validates the provided bearer token signature is valid
-func BearerTokenMiddleware(secret encryption.HmacSha256Secret) func(http.Handler) http.Handler {
+func BearerTokenMiddleware(secret *encryption.HmacSha256Secret) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 

@@ -8,44 +8,51 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-
-	"github.com/go-git/go-git/v5"
+	"time"
 )
 
-// dummy code
-
-func dummy() {
-	_, err := git.PlainClone("/tmp/foo", false, &git.CloneOptions{
-		URL:      "https://github.com/go-git/go-git",
-		Progress: os.Stdout,
-	})
-
-	CheckIfError(err)
+// Configuration represents a repository configuration as retrieved from yaml configuration files
+type Configuration struct {
+	Name                   string `yaml:"name"`
+	Url                    string `yaml:"url"`
+	Branch                 string `yaml:"branch"`
+	RefreshIntervalSeconds int    `yaml:"refreshIntervalSeconds"`
+	CheckoutLocation       string `yaml:"checkoutLocation"`
+	Token                  string `yaml:"token"`
 }
 
-func CheckIfError(err error) {
-	if err == nil {
-		return
-	}
-
-	fmt.Printf("\x1b[31;1m%s\x1b[0m\n", fmt.Sprintf("error: %s", err))
-	os.Exit(1)
+type Statistics struct {
+	Hitcount   int64     `json:"hitCount"`
+	LastUpdate time.Time `json:"lastUpdate"`
+	NextUpdate time.Time `json:"nextUpdate"`
+	LastError  error     `json:"lastError"`
 }
 
-// Repository represents a repository configuration as retrieved from yaml configuration files
+type UpdateEvent struct {
+	RepositoryName string
+	LastUpdate     time.Time
+	NextUpdate     time.Time
+	LastError      error
+	Active         bool
+}
+
 type Repository struct {
-	Name string `yaml:"name"`
-	Url  string `yaml:"url"`
+	Configuration *Configuration
+	Statistics    *Statistics
+	Beholder      *Beholder
+	Active        bool
 }
 
-// Manager is one stop shop for managing all the configured repositories
+// Manager is one-stop shop for managing all the configured repositories
 type Manager struct {
 	*config.GitConfiguration
 	Repositories map[string]*Repository
+	Heartbeat    chan UpdateEvent
 }
 
 func NewManager(configuration *config.GitConfiguration) (*Manager, error) {
 
+	hb := make(chan UpdateEvent)
 	entries, err := os.ReadDir(configuration.RepositoriesConfigurationLocation)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse '%s' for repository configurations: %w", configuration.RepositoriesConfigurationLocation, err)
@@ -63,14 +70,43 @@ func NewManager(configuration *config.GitConfiguration) (*Manager, error) {
 			return nil, fmt.Errorf("'%s' repository configuration cannot be loaded : %w", repoConfigPath, err)
 		}
 
-		repo := &Repository{}
+		repo := &Configuration{}
 		err = yaml.Unmarshal([]byte(data), &repo)
 		if err != nil {
 			return nil, fmt.Errorf("'%s' repository configuration cannot be loaded : %w", repoConfigPath, err)
 		}
-		repos[repo.Name] = repo
-		slog.Info("Repository configuration loaded from", "location", repoConfigPath)
+		if len(repo.Branch) == 0 {
+			repo.Branch = "main"
+		}
+		repos[repo.Name] = &Repository{
+			Configuration: repo,
+			Beholder:      NewBeholder(repo, hb),
+			Statistics:    &Statistics{},
+			Active:        true,
+		}
+		slog.Info("repository configuration loaded from", "location", repoConfigPath)
 	}
 
-	return &Manager{configuration, repos}, nil
+	return &Manager{configuration, repos, hb}, nil
+}
+
+func (mgr Manager) Start() {
+	for name, repo := range mgr.Repositories {
+		slog.Info("Starting beholder", "name", name)
+		repo.Beholder.Watch()
+	}
+}
+
+func (mgr *Manager) listen() {
+	for event := range mgr.Heartbeat {
+
+		if event.LastError != nil {
+			slog.Error("error", event.LastError)
+		}
+
+		mgr.Repositories[event.RepositoryName].Statistics.LastError = event.LastError
+		mgr.Repositories[event.RepositoryName].Statistics.NextUpdate = event.NextUpdate
+		mgr.Repositories[event.RepositoryName].Statistics.LastUpdate = event.LastUpdate
+		mgr.Repositories[event.RepositoryName].Active = event.Active
+	}
 }

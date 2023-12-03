@@ -35,7 +35,7 @@ func (server *ConfigServer) Start() {
 
 	secret, _ := encryption.NewHmacSha256Secret()
 
-	slog.Info("Secret", "secret", base64.StdEncoding.EncodeToString(secret[:]))
+	slog.Info("Secret", "secret", base64.StdEncoding.EncodeToString(secret.Key))
 
 	router := http.NewServeMux()
 	loggingMiddleware := middleware.RequestLoggingMiddleware()
@@ -49,6 +49,9 @@ func (server *ConfigServer) Start() {
 	router.HandleFunc("/api/keygen/aes", server.GenAes256)
 	router.HandleFunc("/api/keygen/hmac", server.GenHmacSha256)
 	router.Handle("/metrics", promhttp.Handler())
+
+	// TODO change bearerToken middleware so that it is explicitely wrapped around the pieces which need auth
+	// https://drstearns.github.io/tutorials/gomiddleware/
 
 	slog.Info(fmt.Sprintf("Now istening on %s", server.configuration.Server.ListenOn))
 	err := http.ListenAndServe(server.configuration.Server.ListenOn, loggingMiddleware(bearerTokenMiddleware(router)))

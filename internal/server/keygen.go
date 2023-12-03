@@ -29,7 +29,7 @@ func (server *ConfigServer) GenAes256(w http.ResponseWriter, req *http.Request) 
 	key, err := encryption.NewAes256Key()
 
 	w.Header().Add("Content-Type", "application/json")
-	resp := &KeyGenResponse{Kind: "AES256", Key: base64.StdEncoding.EncodeToString(key[:])}
+	resp := &KeyGenResponse{Kind: "AES256", Key: base64.StdEncoding.EncodeToString(key.Key)}
 	json, err := json.Marshal(resp)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -53,7 +53,7 @@ func (server *ConfigServer) GenHmacSha256(w http.ResponseWriter, req *http.Reque
 	key, err := encryption.NewHmacSha256Secret()
 
 	w.Header().Add("Content-Type", "application/json")
-	resp := &KeyGenResponse{Kind: "HS256", Key: base64.StdEncoding.EncodeToString(key[:])}
+	resp := &KeyGenResponse{Kind: "HS256", Key: base64.StdEncoding.EncodeToString(key.Key)}
 	json, err := json.Marshal(resp)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

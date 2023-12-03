@@ -29,3 +29,18 @@ func TestVerifySignature(t *testing.T) {
 	err := VerifySignature(jwt, secret)
 	assert.NoError(t, err)
 }
+
+func TestUnpack(t *testing.T) {
+	token := NewJSONWebToken()
+
+	token.Payload.Subject = "test"
+	token.Payload.Issuer = "ConfigServer"
+
+	secret, _ := encryption.NewHmacSha256Secret()
+	jwt := token.Pack(secret)
+	tk, err := Unpack(jwt, secret)
+	assert.NoError(t, err)
+
+	assert.Equal(t, "test", tk.Payload.Subject)
+	assert.Equal(t, "ConfigServer", tk.Payload.Issuer)
+}

@@ -86,7 +86,7 @@ func LoadFrom(path string) (*Configuration, error) {
 
 // Configuration groups all the supported configuration options
 type Configuration struct {
-	CertsLocation string `yaml:"certs_location"` // location of keys and certificates
+	CertsLocation string `yaml:"certsLocation"` // location of keys and certificates
 	// Environment variables for ease of use
 	*Environment
 	// Server related settings
@@ -103,12 +103,12 @@ type Environment struct {
 
 // Server groups all the configserver related settings
 type Server struct {
-	ListenOn string `yaml:"listen_on"` // address and port on which the server will listen for incoming requests
+	ListenOn string `yaml:"listenOn"` // address and port on which the server will listen for incoming requests
 }
 
 type GitConfiguration struct {
-	RepositoriesCheckoutLocation      string `yaml:"repositories_checkout_location"`      // Git repositories checkout location
-	RepositoriesConfigurationLocation string `yaml:"repositories_configuration_location"` // Path where git configuration files can be found
+	RepositoriesCheckoutLocation      string `yaml:"repositoriesCheckoutLocation"`      // Git repositories checkout location
+	RepositoriesConfigurationLocation string `yaml:"repositoriesConfigurationLocation"` // Path where git configuration files can be found
 }
 
 // LogEnvironment logs the current environment configuration

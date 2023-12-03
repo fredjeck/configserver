@@ -52,7 +52,8 @@ func initialize() {
 		os.Exit(1)
 	}
 
-	_, lastError = repository.NewManager(configuration.GitConfiguration)
+	mgr, lastError := repository.NewManager(configuration.GitConfiguration)
+	mgr.Start()
 	if lastError != nil {
 		slog.Error("ConfigServer was not able to start its GIT repository service", "err", lastError)
 		os.Exit(1)

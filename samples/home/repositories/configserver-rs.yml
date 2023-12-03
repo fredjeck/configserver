@@ -1,2 +1,4 @@
 name: rust-configserver
 url: https://github.com/fredjeck/configserver
+refreshIntervalSeconds: 10
+token: abcd

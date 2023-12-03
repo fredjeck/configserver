@@ -1,2 +1,3 @@
 name: fav
 url: git@github.com:fredjeck/fav.git
+refreshIntervalSeconds: 10

@@ -4,6 +4,9 @@ import (
 	"net/http"
 )
 
+type GitMiddleware struct {
+}
+
 // GitRepoMiddleware validates the provided bearer token signature is valid
 func GitRepoMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
