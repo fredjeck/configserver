@@ -21,6 +21,7 @@ var (
 	configurationFilePath string
 	configuration         *config.Configuration
 	keystore              *encryption.Keystore
+	repositoryManager     *repository.Manager
 	lastError             error
 )
 
@@ -52,8 +53,8 @@ func initialize() {
 		os.Exit(1)
 	}
 
-	mgr, lastError := repository.NewManager(configuration.GitConfiguration)
-	mgr.Start()
+	repositoryManager, lastError = repository.NewManager(configuration.GitConfiguration)
+	repositoryManager.Start()
 	if lastError != nil {
 		slog.Error("ConfigServer was not able to start its GIT repository service", "err", lastError)
 		os.Exit(1)
@@ -62,5 +63,5 @@ func initialize() {
 
 func startServer(_ *cobra.Command, _ []string) {
 	slog.Info("Starting ConfigServer ...")
-	server.New(configuration, keystore).Start()
+	server.New(configuration, keystore, repositoryManager).Start()
 }

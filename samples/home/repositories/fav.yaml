@@ -1,3 +1,4 @@
 name: fav
-url: git@github.com:fredjeck/fav.git
+url: https://github.com/fredjeck/fav
 refreshIntervalSeconds: 10
+checkoutLocation: ./samples/home/git/fav

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/fredjeck/configserver/internal/repository"
 	"log/slog"
 	"net/http"
 	"os"
@@ -19,11 +20,12 @@ import (
 type ConfigServer struct {
 	configuration *config.Configuration
 	keystore      *encryption.Keystore
+	repository    *repository.Manager
 }
 
 // New creates a new instance of ConfigServer using the supplioed configuration
-func New(configuration *config.Configuration, keystore *encryption.Keystore) *ConfigServer {
-	return &ConfigServer{configuration: configuration, keystore: keystore}
+func New(configuration *config.Configuration, keystore *encryption.Keystore, repository *repository.Manager) *ConfigServer {
+	return &ConfigServer{configuration: configuration, keystore: keystore, repository: repository}
 }
 
 // Start starts the server
@@ -39,7 +41,8 @@ func (server *ConfigServer) Start() {
 
 	router := http.NewServeMux()
 	loggingMiddleware := middleware.RequestLoggingMiddleware()
-	bearerTokenMiddleware := middleware.BearerTokenMiddleware(secret)
+	//bearerTokenMiddleware := middleware.BearerTokenMiddleware(secret)
+	gitMiddleware := middleware.GitRepoMiddleware(server.repository)
 
 	// router.HandleFunc("/api/stats", server.statistics)
 	// router.HandleFunc("/api/repositories", server.listRepositories)
@@ -54,7 +57,7 @@ func (server *ConfigServer) Start() {
 	// https://drstearns.github.io/tutorials/gomiddleware/
 
 	slog.Info(fmt.Sprintf("Now istening on %s", server.configuration.Server.ListenOn))
-	err := http.ListenAndServe(server.configuration.Server.ListenOn, loggingMiddleware(bearerTokenMiddleware(router)))
+	err := http.ListenAndServe(server.configuration.Server.ListenOn, loggingMiddleware(gitMiddleware(router)))
 	if err != nil {
 		slog.Error("error starting configserver:", "error", err)
 		os.Exit(1)
