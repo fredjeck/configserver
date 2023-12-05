@@ -42,7 +42,7 @@ func (server *ConfigServer) Start() {
 	router := http.NewServeMux()
 	loggingMiddleware := middleware.RequestLoggingMiddleware()
 	//bearerTokenMiddleware := middleware.BearerTokenMiddleware(secret)
-	gitMiddleware := middleware.GitRepoMiddleware(server.repository)
+	gitMiddleware := server.GitRepoMiddleware()
 
 	// router.HandleFunc("/api/stats", server.statistics)
 	// router.HandleFunc("/api/repositories", server.listRepositories)
