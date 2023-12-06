@@ -47,10 +47,11 @@ func (server *ConfigServer) Start() {
 	// router.HandleFunc("/api/stats", server.statistics)
 	// router.HandleFunc("/api/repositories", server.listRepositories)
 	router.HandleFunc("/api/encrypt", server.encryptValue)
-	router.HandleFunc("/api/register", server.registerClient)
+	router.HandleFunc("/api/register", server.generateClientSecret)
 	router.HandleFunc("/api/register/jwt", server.registerClientJwt)
 	router.HandleFunc("/api/keygen/aes", server.GenAes256)
 	router.HandleFunc("/api/keygen/hmac", server.GenHmacSha256)
+	router.HandleFunc("/oauth2/authorize", server.authorize)
 	router.Handle("/metrics", promhttp.Handler())
 
 	// TODO change bearerToken middleware so that it is explicitely wrapped around the pieces which need auth
