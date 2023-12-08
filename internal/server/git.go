@@ -8,7 +8,7 @@ import (
 )
 
 // GitRepoMiddleware validates the provided bearer token signature is valid
-func (s *ConfigServer) GitRepoMiddleware() func(http.Handler) http.Handler {
+func (server *ConfigServer) GitRepoMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 
@@ -35,7 +35,7 @@ func (s *ConfigServer) GitRepoMiddleware() func(http.Handler) http.Handler {
 
 			repo := path[0:idx]
 			filePath := path[idx+1:]
-			content, err := s.repository.Get(repo, filePath)
+			content, err := server.repository.Get(repo, filePath)
 			if err != nil {
 				slog.Error("file or repository not found", "repository", repo, "file_path", filePath)
 				w.WriteHeader(http.StatusNotFound)

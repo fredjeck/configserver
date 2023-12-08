@@ -47,10 +47,12 @@ func (server *ConfigServer) Start() {
 	// router.HandleFunc("/api/stats", server.statistics)
 	// router.HandleFunc("/api/repositories", server.listRepositories)
 	router.HandleFunc("/api/encrypt", server.encryptValue)
-	router.HandleFunc("/api/register", server.generateClientSecret)
-	router.HandleFunc("/api/register/jwt", server.registerClientJwt)
+
 	router.HandleFunc("/api/keygen/aes", server.GenAes256)
 	router.HandleFunc("/api/keygen/hmac", server.GenHmacSha256)
+
+	// Obtain a new ClientID
+	router.HandleFunc("/api/register", server.generateClientSecret)
 
 	// OAuth2 Authorization endpoint
 	router.HandleFunc("/oauth2/authorize", server.authorize)

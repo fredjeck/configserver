@@ -21,123 +21,22 @@ type RegisterClientResponse struct {
 	ClientSecret string `json:"clientSecret"`
 }
 
-// RegisterClientResponseJwt represent a JWT response web token
-type RegisterClientResponseJwt struct {
-	AccessToken string `json:"access_token"`
-	TokenType   string `json:"token_type"`
-}
-
-// registerClient is a handlerFunc which generates a new client secret from the provided data.
-func (server *ConfigServer) registerClient(w http.ResponseWriter, req *http.Request) {
-	if req.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	if req.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-	var registerRequest RegisterClientRequest
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		server.writeError(http.StatusBadRequest, w, "Cannot parse the request body")
-		return
-	}
-	err = json.Unmarshal(body, &registerRequest)
-	if err != nil {
-		server.writeError(http.StatusBadRequest, w, "Cannot unmarshal the request body")
-		return
-	}
-
-	if len(registerRequest.ClientID) == 0 {
-		registerRequest.ClientID = uuid.NewString()
-	}
-
-	spec := auth.NewClientKeySpec(registerRequest.ClientID, registerRequest.Repositories)
-	secret, err := spec.GenerateSecret(server.keystore.Aes256Key)
-	if err != nil {
-		server.writeError(http.StatusBadRequest, w, "Cannot generate client secret")
-		return
-	}
-	w.Header().Add("Content-Type", "application/json")
-	resp := &RegisterClientResponse{ClientID: registerRequest.ClientID, ClientSecret: secret}
-	values, err := json.Marshal(resp)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	slog.Debug("New client secret generated", "clientID", registerRequest.ClientID)
-	server.writeResponse(http.StatusOK, values, w)
-}
-
-// registerClient is a handlerFunc which generates a new client secret from the provided data.
-func (server *ConfigServer) registerClientJwt(w http.ResponseWriter, req *http.Request) {
-	if req.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	if req.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-
-	var registerRequest RegisterClientRequest
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		server.writeError(http.StatusBadRequest, w, "Cannot parse the request body")
-		return
-	}
-	err = json.Unmarshal(body, &registerRequest)
-	if err != nil {
-		server.writeError(http.StatusBadRequest, w, "Cannot unmarshal the request body")
-		return
-	}
-
-	if len(registerRequest.ClientID) == 0 {
-		registerRequest.ClientID = uuid.NewString()
-	}
-
-	token := auth.NewJSONWebToken()
-	token.Payload.Audience = registerRequest.Repositories
-	token.Payload.Issuer = "ConfigServer"
-	token.Payload.Subject = registerRequest.ClientID
-
-	w.Header().Add("Content-Type", "application/json")
-	resp := &RegisterClientResponseJwt{TokenType: "Bearer", AccessToken: token.Pack(server.keystore.HmacSha256Secret)}
-	values, err := json.Marshal(resp)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	slog.Debug("New bearer token generated", "ClientId", registerRequest.ClientID)
-	server.writeResponse(http.StatusOK, values, w)
-}
-
-// registerClient is a handlerFunc which generates a new client secret from the provided data.
+// generateClientSecret is a handlerFunc which generates a new client secret for the provided client id
 func (server *ConfigServer) generateClientSecret(w http.ResponseWriter, req *http.Request) {
-	if req.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
 	if req.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		die(w, http.StatusMethodNotAllowed, "only POST is supported")
 		return
 	}
 
 	var registerRequest RegisterClientRequest
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
-		server.writeError(http.StatusBadRequest, w, "Cannot parse the request body")
+		die(w, http.StatusBadRequest, "unable to parse request body")
 		return
 	}
 	err = json.Unmarshal(body, &registerRequest)
 	if err != nil {
-		server.writeError(http.StatusBadRequest, w, "Cannot unmarshal the request body")
+		die(w, http.StatusBadRequest, "unable to parse request body")
 		return
 	}
 
@@ -147,17 +46,18 @@ func (server *ConfigServer) generateClientSecret(w http.ResponseWriter, req *htt
 
 	clientSecret, err := auth.GenerateClientSecret(registerRequest.ClientID, server.keystore.Aes256Key)
 	if err != nil {
-		server.writeError(http.StatusInternalServerError, w, "Cannot generate client secret")
-		return
-	}
-	w.Header().Add("Content-Type", "application/json")
-	resp := &RegisterClientResponse{ClientID: registerRequest.ClientID, ClientSecret: clientSecret}
-	values, err := json.Marshal(resp)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		die(w, http.StatusInternalServerError, "failed to generate client secret")
 		return
 	}
 
-	slog.Debug("New client secret generated", "clientID", registerRequest.ClientID)
+	resp := &RegisterClientResponse{ClientID: registerRequest.ClientID, ClientSecret: clientSecret}
+	values, err := json.Marshal(resp)
+	if err != nil {
+		die(w, http.StatusInternalServerError, "an error occurred while generating the server response")
+		return
+	}
+
+	slog.Debug("new client secret generated", "clientID", registerRequest.ClientID)
+	w.Header().Add("Content-Type", "application/json")
 	server.writeResponse(http.StatusOK, values, w)
 }
