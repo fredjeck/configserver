@@ -15,50 +15,44 @@ type KeyGenResponse struct {
 	Key  string `json:"key"`
 }
 
+// GenAes256 generates a new AES key
 func (server *ConfigServer) GenAes256(w http.ResponseWriter, req *http.Request) {
-	if req.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
 	if req.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		die(w, http.StatusMethodNotAllowed, "only GET is supported")
 		return
 	}
 
 	key, err := encryption.NewAes256Key()
 
-	w.Header().Add("Content-Type", "application/json")
 	resp := &KeyGenResponse{Kind: "AES256", Key: base64.StdEncoding.EncodeToString(key.Key)}
-	json, err := json.Marshal(resp)
+	responseJson, err := json.Marshal(resp)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		die(w, http.StatusInternalServerError, "unable to generate key")
 		return
 	}
-	slog.Debug("New HS256 secret generated", "secret", resp.Key)
-	server.writeResponse(http.StatusOK, json, w)
+
+	slog.Debug("new HS256 secret generated", "secret", resp.Key)
+	w.Header().Add("Content-Type", "application/json")
+	server.writeResponse(http.StatusOK, responseJson, w)
 }
 
+// GenHmacSha256 generates a new Hmac key
 func (server *ConfigServer) GenHmacSha256(w http.ResponseWriter, req *http.Request) {
-	if req.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
 	if req.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		die(w, http.StatusMethodNotAllowed, "only GET is supported")
 		return
 	}
 
 	key, err := encryption.NewHmacSha256Secret()
 
-	w.Header().Add("Content-Type", "application/json")
 	resp := &KeyGenResponse{Kind: "HS256", Key: base64.StdEncoding.EncodeToString(key.Key)}
-	json, err := json.Marshal(resp)
+	responseJson, err := json.Marshal(resp)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		die(w, http.StatusInternalServerError, "unable to generate key")
 		return
 	}
-	slog.Debug("New HS256 secret generated", "secret", resp.Key)
-	server.writeResponse(http.StatusOK, json, w)
+	slog.Debug("new HS256 secret generated", "secret", resp.Key)
+
+	w.Header().Add("Content-Type", "application/json")
+	server.writeResponse(http.StatusOK, responseJson, w)
 }

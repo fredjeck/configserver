@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -32,6 +33,8 @@ type JSONWebToken struct {
 	Payload *JSONWebTokenPayload
 }
 
+const TokenValidityDays = 1
+
 // NewJSONWebToken creates a new empty JSON Web Token
 func NewJSONWebToken() *JSONWebToken {
 	return &JSONWebToken{
@@ -39,7 +42,7 @@ func NewJSONWebToken() *JSONWebToken {
 		Payload: &JSONWebTokenPayload{
 			NotBefore: time.Now().Unix(),
 			IssuedAt:  time.Now().Unix(),
-			Expires:   time.Now().AddDate(0, 0, 1).Unix(),
+			Expires:   time.Now().AddDate(0, 0, TokenValidityDays).Unix(),
 		},
 	}
 }
@@ -51,6 +54,22 @@ func (jwt *JSONWebToken) Pack(secret *encryption.HmacSha256Secret) string {
 	hash := encryption.HmacSha256Hash([]byte(tk), secret)
 	b64Hash := base64.RawURLEncoding.EncodeToString(hash)
 	return fmt.Sprintf("%s.%s", tk, b64Hash)
+}
+
+// ParseJwt parses a jwt token string, validates its signature and expiration and returns the token
+func ParseJwt(token string, secret *encryption.HmacSha256Secret) (*JSONWebToken, error) {
+	jwt, err := Unpack(token, secret)
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now().Unix()
+
+	if jwt.Payload.NotBefore > now || jwt.Payload.Expires > now {
+		return nil, errors.New("token is expired")
+	}
+
+	return jwt, nil
 }
 
 // Unpack unmarshall a b64 encoded JWT to a JSONWebToken object

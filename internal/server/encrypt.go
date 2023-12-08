@@ -7,20 +7,21 @@ import (
 	"github.com/fredjeck/configserver/internal/encryption"
 )
 
+// encryptValue generates encrypted substitution tokens
 func (server *ConfigServer) encryptValue(w http.ResponseWriter, req *http.Request) {
-	w.Header().Add("Content-Type", "application/json")
 
 	value, err := io.ReadAll(req.Body)
 	if err != nil {
-		server.writeError(http.StatusBadRequest, w, "Cannot parse the request body")
+		die(w, http.StatusBadRequest, "cannot parse request body")
 		return
 	}
 
 	token, err := encryption.NewEncryptedToken(value, server.keystore.Aes256Key)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		die(w, http.StatusInternalServerError, "unable to encrypt the provided value")
 		return
 	}
 
+	w.Header().Add("Content-Type", "application/json")
 	server.writeResponse(http.StatusOK, []byte(token), w)
 }

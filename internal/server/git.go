@@ -2,10 +2,40 @@ package server
 
 import (
 	"fmt"
+	"github.com/fredjeck/configserver/internal/auth"
 	"log/slog"
 	"net/http"
 	"strings"
 )
+
+func (server *ConfigServer) extractToken(w http.ResponseWriter, r *http.Request) (*auth.JSONWebToken, bool) {
+	authorization, ok := r.Header["Authorization"]
+	if !ok {
+		die(w, http.StatusBadRequest, "missing authorization header")
+		return nil, false
+	}
+
+	authStr := strings.ToLower(authorization[0])
+	if !strings.Contains(authStr, "bearer") {
+		die(w, http.StatusBadRequest, "only bearer authorization is supported")
+		return nil, false
+	}
+
+	token := strings.Replace(authStr, "bearer ", "", -1)
+	err := auth.VerifySignature(token, server.keystore.HmacSha256Secret)
+	if err != nil {
+		die(w, http.StatusUnauthorized, "not authorized")
+		return nil, false
+	}
+
+	jwt, err := auth.ParseJwt(token, server.keystore.HmacSha256Secret)
+	if err != nil {
+		die(w, http.StatusUnauthorized, "invalid token")
+		return nil, false
+	}
+
+	return jwt, true
+}
 
 // GitRepoMiddleware validates the provided bearer token signature is valid
 func (server *ConfigServer) GitRepoMiddleware() func(http.Handler) http.Handler {
@@ -15,6 +45,11 @@ func (server *ConfigServer) GitRepoMiddleware() func(http.Handler) http.Handler 
 			path := r.URL.Path
 			if path[0:4] != "/git" {
 				next.ServeHTTP(w, r)
+				return
+			}
+
+			_, ok := server.extractToken(w, r)
+			if !ok {
 				return
 			}
 
