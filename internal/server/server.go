@@ -51,7 +51,11 @@ func (server *ConfigServer) Start() {
 	router.HandleFunc("/api/register/jwt", server.registerClientJwt)
 	router.HandleFunc("/api/keygen/aes", server.GenAes256)
 	router.HandleFunc("/api/keygen/hmac", server.GenHmacSha256)
+
+	// OAuth2 Authorization endpoint
 	router.HandleFunc("/oauth2/authorize", server.authorize)
+
+	// Prometheus metrics
 	router.Handle("/metrics", promhttp.Handler())
 
 	// TODO change bearerToken middleware so that it is explicitely wrapped around the pieces which need auth

@@ -2,13 +2,11 @@ package server
 
 import (
 	"encoding/json"
+	"github.com/fredjeck/configserver/internal/auth"
+	"github.com/google/uuid"
 	"io"
 	"log/slog"
 	"net/http"
-	"time"
-
-	"github.com/fredjeck/configserver/internal/auth"
-	"github.com/google/uuid"
 )
 
 // RegisterClientRequest represents the API's input body payload
@@ -105,7 +103,6 @@ func (server *ConfigServer) registerClientJwt(w http.ResponseWriter, req *http.R
 	token := auth.NewJSONWebToken()
 	token.Payload.Audience = registerRequest.Repositories
 	token.Payload.Issuer = "ConfigServer"
-	token.Payload.NotBefore = time.Now().Format(time.RFC3339)
 	token.Payload.Subject = registerRequest.ClientID
 
 	w.Header().Add("Content-Type", "application/json")

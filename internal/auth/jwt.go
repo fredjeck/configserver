@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/fredjeck/configserver/internal/encryption"
 )
@@ -14,7 +15,9 @@ type JSONWebTokenPayload struct {
 	Issuer    string   `json:"iss"`
 	Subject   string   `json:"sub"`
 	Audience  []string `json:"aud"`
-	NotBefore string   `json:"nbf"`
+	NotBefore int64    `json:"nbf"`
+	IssuedAt  int64    `json:"iat"`
+	Expires   int64    `json:"exp"`
 }
 
 // JSONWebTokenHeader represents the Payload part of a JWT
@@ -31,10 +34,18 @@ type JSONWebToken struct {
 
 // NewJSONWebToken creates a new empty JSON Web Token
 func NewJSONWebToken() *JSONWebToken {
-	return &JSONWebToken{Header: &JSONWebTokenHeader{Alg: "HS256", Type: "JWT"}, Payload: &JSONWebTokenPayload{}}
+	return &JSONWebToken{
+		Header: &JSONWebTokenHeader{Alg: "HS256", Type: "JWT"},
+		Payload: &JSONWebTokenPayload{
+			NotBefore: time.Now().Unix(),
+			IssuedAt:  time.Now().Unix(),
+			Expires:   time.Now().AddDate(0, 0, 1).Unix(),
+		},
+	}
 }
 
-// Pack generates the token by marshalling the content to JSON, formatting the output into b64UrlEncoded strings and by appending the token signature
+// Pack generates the token by marshalling the content to JSON, formatting the output into b64UrlEncoded strings
+// and by appending the token signature
 func (jwt *JSONWebToken) Pack(secret *encryption.HmacSha256Secret) string {
 	tk := jwt.token()
 	hash := encryption.HmacSha256Hash([]byte(tk), secret)
@@ -42,6 +53,7 @@ func (jwt *JSONWebToken) Pack(secret *encryption.HmacSha256Secret) string {
 	return fmt.Sprintf("%s.%s", tk, b64Hash)
 }
 
+// Unpack unmarshall a b64 encoded JWT to a JSONWebToken object
 func Unpack(token string, secret *encryption.HmacSha256Secret) (*JSONWebToken, error) {
 	if err := VerifySignature(token, secret); err != nil {
 		return nil, err
@@ -54,20 +66,26 @@ func Unpack(token string, secret *encryption.HmacSha256Secret) (*JSONWebToken, e
 	}
 
 	tk := NewJSONWebToken()
-	json.Unmarshal(headerStr, tk.Header)
+	err = json.Unmarshal(headerStr, tk.Header)
+	if err != nil {
+		return nil, fmt.Errorf("unable to unmarshal jwt header: %w", err)
+	}
 
 	bodyStr, err := base64.RawURLEncoding.DecodeString(components[1])
 	if err != nil {
 		return nil, err
 	}
 
-	json.Unmarshal(bodyStr, tk.Payload)
+	err = json.Unmarshal(bodyStr, tk.Payload)
+	if err != nil {
+		return nil, fmt.Errorf("unable to unmarshal jwt payload: %w", err)
+	}
 
 	return tk, nil
 }
 
 // VerifySignature validates a token has been signed with the provided key
-// Simplistic approach, does not verify the alg and enforce HMAC
+// Simplistic approach, does not verify the alg and enforces HMAC
 func VerifySignature(token string, secret *encryption.HmacSha256Secret) error {
 	components := strings.Split(token, ".")
 	if len(components) != 3 {

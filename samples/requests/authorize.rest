@@ -2,4 +2,4 @@ POST http://localhost:8080/oauth2/authorize HTTP/1.1
 content-type: application/x-www-form-urlencoded
 Authorization: Basic bXljbGllbnRpZDpITzA2cE40MWhybFRhd0MwVzkwcnNDVjNMSDFPdzluNGg0TmdRa3NDMkFnUm0zZU5uVnM5Ymt6WkE4cTNMa0RqMXU1R0ZJZXUvVWt4bWVrQVZGMVpCTGk4NjFnV3RnPT0=
 
-response_type=token&client_id=myclientid&scope=repo1%2Frepo2
+grant_type=client_credentials&scope=rust-configserver fav

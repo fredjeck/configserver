@@ -3,3 +3,5 @@ url: https://github.com/fredjeck/configserver
 refreshIntervalSeconds: 10
 token: abcd
 checkoutLocation: ./samples/home/git/rsconfig
+clients:
+  - myclientid
