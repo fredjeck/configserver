@@ -38,7 +38,7 @@ func (server *ConfigServer) authorize(w http.ResponseWriter, req *http.Request) 
 
 	basicAuth, err := b64.StdEncoding.DecodeString(strings.ReplaceAll(authorization, "Basic ", ""))
 	if err != nil {
-		die(w, http.StatusUnauthorized, "incorrect authorization header")
+		dieErr(w, http.StatusUnauthorized, "incorrect authorization header", err)
 		return
 	}
 

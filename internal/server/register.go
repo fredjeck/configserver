@@ -31,12 +31,12 @@ func (server *ConfigServer) generateClientSecret(w http.ResponseWriter, req *htt
 	var registerRequest RegisterClientRequest
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
-		die(w, http.StatusBadRequest, "unable to parse request body")
+		dieErr(w, http.StatusBadRequest, "unable to parse request body", err)
 		return
 	}
 	err = json.Unmarshal(body, &registerRequest)
 	if err != nil {
-		die(w, http.StatusBadRequest, "unable to parse request body")
+		dieErr(w, http.StatusBadRequest, "unable to parse request body", err)
 		return
 	}
 
@@ -53,7 +53,7 @@ func (server *ConfigServer) generateClientSecret(w http.ResponseWriter, req *htt
 	resp := &RegisterClientResponse{ClientID: registerRequest.ClientID, ClientSecret: clientSecret}
 	values, err := json.Marshal(resp)
 	if err != nil {
-		die(w, http.StatusInternalServerError, "an error occurred while generating the server response")
+		dieErr(w, http.StatusInternalServerError, "an error occurred while generating the server response", err)
 		return
 	}
 

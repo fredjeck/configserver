@@ -1,5 +1,4 @@
-// Package middleware contains all the middlewares used by configserver
-package middleware
+package server
 
 import (
 	"fmt"
@@ -46,7 +45,7 @@ func RequestLoggingMiddleware() func(http.Handler) http.Handler {
 			defer func() {
 				if err := recover(); err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
-					slog.Error("Internal server error", slog.String("stacktrace", string(debug.Stack())))
+					slog.Error("internal server error", slog.String("stacktrace", string(debug.Stack())))
 				}
 			}()
 

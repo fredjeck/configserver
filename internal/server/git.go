@@ -24,13 +24,13 @@ func (server *ConfigServer) extractToken(w http.ResponseWriter, r *http.Request)
 	token := strings.Replace(authStr, "bearer ", "", -1)
 	err := auth.VerifySignature(token, server.keystore.HmacSha256Secret)
 	if err != nil {
-		die(w, http.StatusUnauthorized, "not authorized")
+		dieErr(w, http.StatusUnauthorized, "not authorized", err)
 		return nil, false
 	}
 
 	jwt, err := auth.ParseJwt(token, server.keystore.HmacSha256Secret)
 	if err != nil {
-		die(w, http.StatusUnauthorized, "invalid token")
+		dieErr(w, http.StatusUnauthorized, "invalid token", err)
 		return nil, false
 	}
 
@@ -45,11 +45,6 @@ func (server *ConfigServer) GitRepoMiddleware() func(http.Handler) http.Handler 
 			path := r.URL.Path
 			if path[0:4] != "/git" {
 				next.ServeHTTP(w, r)
-				return
-			}
-
-			_, ok := server.extractToken(w, r)
-			if !ok {
 				return
 			}
 
@@ -70,6 +65,25 @@ func (server *ConfigServer) GitRepoMiddleware() func(http.Handler) http.Handler 
 
 			repo := path[0:idx]
 			filePath := path[idx+1:]
+
+			token, ok := server.extractToken(w, r)
+			if !ok {
+				return
+			}
+
+			found := false
+			for _, aud := range token.Payload.Audience {
+				if strings.EqualFold(aud, repo) {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				die(w, http.StatusUnauthorized, "repository access is not allowed")
+				return
+			}
+
 			content, err := server.repository.Get(repo, filePath)
 			if err != nil {
 				slog.Error("file or repository not found", "repository", repo, "file_path", filePath)

@@ -1,8 +1,15 @@
 package server
 
-import "net/http"
+import (
+	"log/slog"
+	"net/http"
+)
 
 func die(w http.ResponseWriter, statusCode int, message string) {
-	w.WriteHeader(statusCode)
-	_, _ = w.Write([]byte(message))
+	http.Error(w, message, statusCode)
+}
+
+func dieErr(w http.ResponseWriter, statusCode int, message string, err error) {
+	slog.Error(message, "error", err)
+	http.Error(w, message, statusCode)
 }

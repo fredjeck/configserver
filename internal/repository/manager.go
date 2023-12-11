@@ -39,7 +39,7 @@ func NewManager(configuration *config.GitConfiguration) (*Manager, error) {
 		}
 
 		repo := &Configuration{}
-		err = yaml.Unmarshal([]byte(data), &repo)
+		err = yaml.Unmarshal(data, &repo)
 		if err != nil {
 			return nil, fmt.Errorf("'%s' repository configuration cannot be loaded : %w", repoConfigPath, err)
 		}
@@ -70,11 +70,11 @@ func (mgr *Manager) Start() {
 func (mgr *Manager) Get(repository string, path string) ([]byte, error) {
 	r, ok := mgr.Repositories[repository]
 	if !ok {
-		return nil, fmt.Errorf("'%s' is not a valid repository")
+		return nil, fmt.Errorf("'%s' is not a valid repository", repository)
 	}
 
 	if !r.Beholder.Active {
-		return nil, fmt.Errorf("'%s' cannot be checked out due to %w", r.Statistics.LastError)
+		return nil, fmt.Errorf("'%s' cannot be checked out due to %w", repository, r.Statistics.LastError)
 	}
 
 	contents, err := r.Beholder.File(path)

@@ -72,7 +72,7 @@ func LoadFrom(path string) (*Configuration, error) {
 		},
 	}
 
-	err = yaml.Unmarshal([]byte(data), &config)
+	err = yaml.Unmarshal(data, &config)
 	if err != nil {
 		return nil, fmt.Errorf("'%s' cannot unmarshal yaml file : %w", path, err)
 	}

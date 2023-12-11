@@ -12,7 +12,6 @@ import (
 
 	"github.com/fredjeck/configserver/internal/config"
 	"github.com/fredjeck/configserver/internal/encryption"
-	"github.com/fredjeck/configserver/internal/server/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -40,19 +39,17 @@ func (server *ConfigServer) Start() {
 	slog.Info("Secret", "secret", base64.StdEncoding.EncodeToString(secret.Key))
 
 	router := http.NewServeMux()
-	loggingMiddleware := middleware.RequestLoggingMiddleware()
-	//bearerTokenMiddleware := middleware.BearerTokenMiddleware(secret)
+	loggingMiddleware := RequestLoggingMiddleware()
 	gitMiddleware := server.GitRepoMiddleware()
 
 	// router.HandleFunc("/api/stats", server.statistics)
-	// router.HandleFunc("/api/repositories", server.listRepositories)
 
 	// Encrypts a value to a substitution token
 	router.HandleFunc("/api/encrypt", server.encryptValue)
 
 	// Generate keys
-	router.HandleFunc("/api/keygen/aes", server.GenAes256)
-	router.HandleFunc("/api/keygen/hmac", server.GenHmacSha256)
+	router.HandleFunc("/api/keygen/aes", server.genAes256)
+	router.HandleFunc("/api/keygen/hmac", server.genHmacSha256)
 
 	// Obtain a new ClientID
 	router.HandleFunc("/api/register", server.generateClientSecret)
@@ -62,9 +59,6 @@ func (server *ConfigServer) Start() {
 
 	// Prometheus metrics
 	router.Handle("/metrics", promhttp.Handler())
-
-	// TODO change bearerToken middleware so that it is explicitely wrapped around the pieces which need auth
-	// https://drstearns.github.io/tutorials/gomiddleware/
 
 	slog.Info(fmt.Sprintf("Now istening on %s", server.configuration.Server.ListenOn))
 	err := http.ListenAndServe(server.configuration.Server.ListenOn, loggingMiddleware(gitMiddleware(router)))
