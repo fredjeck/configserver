@@ -11,14 +11,13 @@ import (
 
 // RegisterClientRequest represents the API's input body payload
 type RegisterClientRequest struct {
-	ClientID     string   `json:"clientID"`
-	Repositories []string `json:"repositories"`
+	ClientID string `json:"client_id"`
 }
 
 // RegisterClientResponse represents the API's output
 type RegisterClientResponse struct {
-	ClientID     string `json:"clientID"`
-	ClientSecret string `json:"clientSecret"`
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
 }
 
 // generateClientSecret is a handlerFunc which generates a new client secret for the provided client id

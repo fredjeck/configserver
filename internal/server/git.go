@@ -1,8 +1,8 @@
 package server
 
 import (
-	"fmt"
 	"github.com/fredjeck/configserver/internal/auth"
+	"github.com/fredjeck/configserver/internal/encryption"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -49,17 +49,14 @@ func (server *ConfigServer) GitRepoMiddleware() func(http.Handler) http.Handler 
 			}
 
 			if r.Method != http.MethodGet {
-				w.WriteHeader(http.StatusBadRequest)
-				_, _ = w.Write([]byte(fmt.Sprintf("'%s' unsupported http verb", r.Method)))
+				dief(w, http.StatusBadRequest, "'%s' unsupported http verb", r.Method)
 				return
 			}
 
 			path = path[5:]
 			idx := strings.Index(path, "/")
 			if idx == -1 {
-				slog.Error("malformed url", "path_url", path)
-				w.WriteHeader(http.StatusBadRequest)
-				_, _ = w.Write([]byte(fmt.Sprintf("'%s' malformed url", path)))
+				dief(w, http.StatusBadRequest, "'%s' malformed url", path)
 				return
 			}
 
@@ -87,13 +84,18 @@ func (server *ConfigServer) GitRepoMiddleware() func(http.Handler) http.Handler 
 			content, err := server.repository.Get(repo, filePath)
 			if err != nil {
 				slog.Error("file or repository not found", "repository", repo, "file_path", filePath)
-				w.WriteHeader(http.StatusNotFound)
-				_, _ = w.Write([]byte(fmt.Sprintf("repository '%s' - file '%s' file or repository not found", repo, filePath)))
+				dief(w, http.StatusNotFound, "'%s' was not found on this server", filePath)
+				return
+			}
+
+			clearText, err := encryption.SubstituteTokens(content, server.keystore.Aes256Key)
+			if err != nil {
+				dief(w, http.StatusNotFound, "'%s' : unable to decrypt file", filePath)
 				return
 			}
 
 			w.Header().Add("Content-Type", "text/plain")
-			_, err = w.Write(content)
+			_, err = w.Write(clearText)
 
 			if err != nil {
 				slog.Error("an error occured while sending back repository file", "url_path", path, "error", err)

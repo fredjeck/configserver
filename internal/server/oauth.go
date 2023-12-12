@@ -68,7 +68,7 @@ func (server *ConfigServer) authorize(w http.ResponseWriter, req *http.Request) 
 	clientId := credentials[0]
 	if !auth.ValidateClientSecret(clientId, credentials[1], server.keystore.Aes256Key) {
 		slog.Warn("login rejected", "client_id", clientId)
-		die(w, http.StatusUnauthorized, "unauthorized")
+		dief(w, http.StatusUnauthorized, "'%s' : unauthorized", clientId)
 		return
 	}
 
