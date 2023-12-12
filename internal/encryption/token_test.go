@@ -20,3 +20,15 @@ func TestTokenSubstitution(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, []byte("p1='value 1';p2='value 2';p3='value 3';p4='value 4';"), clearText)
 }
+
+func TestTokenize(t *testing.T) {
+	key, _ := NewAes256Key()
+
+	text := "p1='{enc:value1}';p2='{enc:value2}';"
+
+	tokenized, err := Tokenize([]byte(text), key)
+	assert.NoError(t, err)
+	assert.NotEqual(t, text, tokenized)
+	assert.NotContains(t, "value1", string(tokenized))
+	assert.NotContains(t, "value2", string(tokenized))
+}

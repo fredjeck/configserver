@@ -47,6 +47,9 @@ func (server *ConfigServer) Start() {
 	// Encrypts a value to a substitution token
 	router.HandleFunc("/api/encrypt", server.encryptValue)
 
+	// Tokenizes the provided data
+	router.HandleFunc("/api/tokenize", server.tokenizeText)
+
 	// Generate keys
 	router.HandleFunc("/api/keygen/aes", server.genAes256)
 	router.HandleFunc("/api/keygen/hmac", server.genHmacSha256)
