@@ -44,7 +44,7 @@ func LoadFrom(path string) (*Configuration, error) {
 		kind = "production"
 	}
 
-	home := strings.ToLower(os.Getenv(EnvConfigServerHome))
+	home := os.Getenv(EnvConfigServerHome)
 	if len(home) == 0 {
 		home = "/var/run/configserver"
 	}
