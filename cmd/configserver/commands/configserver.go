@@ -15,7 +15,7 @@ var (
 	ConfigServerCommand = &cobra.Command{
 		Use:   "configserver",
 		Short: "Securely distribute your configuration files with style",
-		Long:  `Configserver is a git based distributed configuration file system, tailor made with a lot of love for cloud based systems`,
+		Long:  `Configserver is a git based distributed configuration file system, tailor made with love for cloud based systems`,
 		Run:   startServer,
 	}
 	configurationFilePath string
@@ -41,7 +41,7 @@ func initialize() {
 	configuration, lastError = config.LoadFrom(configurationFilePath)
 
 	if lastError != nil {
-		slog.Error("ConfigServer was not able to start due to missing or invalid configuration file", "err", lastError)
+		slog.Error("configServer was not able to start due to missing or invalid configuration file", "error", lastError)
 		os.Exit(1)
 	}
 
@@ -49,14 +49,14 @@ func initialize() {
 
 	keystore, lastError = encryption.LoadKeyStoreFromPath(configuration.CertsLocation)
 	if lastError != nil {
-		slog.Error("ConfigServer was not able to load its keystore", "err", lastError)
+		slog.Error("configServer was not able to load its keystore", "error", lastError)
 		os.Exit(1)
 	}
 
 	repositoryManager, lastError = repository.NewManager(configuration.GitConfiguration)
 	repositoryManager.Start()
 	if lastError != nil {
-		slog.Error("ConfigServer was not able to start its GIT repository service", "err", lastError)
+		slog.Error("configServer was not able to start its GIT repository service", "error", lastError)
 		os.Exit(1)
 	}
 }

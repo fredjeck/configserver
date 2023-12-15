@@ -61,7 +61,7 @@ func NewManager(configuration *config.GitConfiguration) (*Manager, error) {
 func (mgr *Manager) Start() {
 	go mgr.listen()
 	for name, repo := range mgr.Repositories {
-		slog.Info("Starting beholder", "name", name)
+		slog.Info("starting beholder", "name", name)
 		repo.Beholder.Watch()
 	}
 }

@@ -44,7 +44,7 @@ func Tokenize(file []byte, key *Aes256Key) ([]byte, error) {
 			continue
 		}
 
-		text = strings.Replace(text, match, string(token), -1)
+		text = strings.Replace(text, match, token, -1)
 	}
 
 	return []byte(text), nil

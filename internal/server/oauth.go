@@ -104,3 +104,32 @@ func (server *ConfigServer) authorize(w http.ResponseWriter, req *http.Request) 
 	w.Header().Add("Content-Type", "application/json")
 	server.writeResponse(http.StatusOK, values, w)
 }
+
+func (server *ConfigServer) extractToken(w http.ResponseWriter, r *http.Request) (*auth.JSONWebToken, bool) {
+	authorization, ok := r.Header["Authorization"]
+	if !ok {
+		die(w, http.StatusBadRequest, "missing authorization header")
+		return nil, false
+	}
+
+	authStr := strings.ToLower(authorization[0])
+	if !strings.Contains(authStr, "bearer") {
+		die(w, http.StatusBadRequest, "only bearer authorization is supported")
+		return nil, false
+	}
+
+	token := strings.Replace(authStr, "bearer ", "", -1)
+	err := auth.VerifySignature(token, server.keystore.HmacSha256Secret)
+	if err != nil {
+		dieErr(w, http.StatusUnauthorized, "not authorized", err)
+		return nil, false
+	}
+
+	jwt, err := auth.ParseJwt(token, server.keystore.HmacSha256Secret)
+	if err != nil {
+		dieErr(w, http.StatusUnauthorized, "invalid token", err)
+		return nil, false
+	}
+
+	return jwt, true
+}

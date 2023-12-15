@@ -24,11 +24,13 @@ const (
 	// ShaKeyFileName represents the name of the SHA Keyfile name
 	ShaKeyFileName = "id_sha"
 	// WarnKeyfileGenerated is a warning message indicating a keyfile was not found and generated automatically
-	WarnKeyfileGenerated = "A key file was not foud. A default key file has been created for you. If the key storage location is not persistant it is highly recommanded that you either provide a persistant storage or your provide your own keys. Please refer to the user manual."
+	WarnKeyfileGenerated = "A key file was not found. A default key file has been created for you. If the key storage location is not persistent it is highly recommended that you either provide a persistent storage or your provide your own keys. Please refer to the user manual."
+	// ArgKeyFilePath is used as context param for keyfile path
+	ArgKeyFilePath = "keyfile_path"
 )
 
-// Keystore is an utility struct storing the various keys and secret used by ConfigServer
-// This is a temporary solution which needs to be improved - me dont like it
+// Keystore is a utility struct storing the various keys and secret used by ConfigServer
+// This is a temporary solution which needs to be improved - me don't like it
 type Keystore struct {
 	Aes256Key        *Aes256Key
 	HmacSha256Secret *HmacSha256Secret
@@ -47,7 +49,7 @@ func LoadKeyStoreFromPath(path string) (*Keystore, error) {
 	// TODO Refactor and remove dupliucation maybe using a keygen function type
 	aesKeyPath := filepath.Join(path, AesKeyFileName)
 	if _, err := os.Stat(aesKeyPath); errors.Is(err, os.ErrNotExist) {
-		slog.Warn(WarnKeyfileGenerated, "missing_key.path", aesKeyPath)
+		slog.Warn(WarnKeyfileGenerated, ArgKeyFilePath, aesKeyPath)
 		if store.Aes256Key, err = NewAes256Key(); err != nil {
 			return nil, err
 		}
@@ -60,11 +62,11 @@ func LoadKeyStoreFromPath(path string) (*Keystore, error) {
 		return nil, err
 	}
 	store.Aes256Key = &Aes256Key{Key: aes}
-	slog.Info("Keyfile loaded", "keyfile.path", aesKeyPath)
+	slog.Info("aes256 keyfile loaded", ArgKeyFilePath, aesKeyPath)
 
 	shaKeyPath := filepath.Join(path, ShaKeyFileName)
 	if _, err := os.Stat(shaKeyPath); errors.Is(err, os.ErrNotExist) {
-		slog.Warn(WarnKeyfileGenerated, "missing_key.path", shaKeyPath)
+		slog.Warn(WarnKeyfileGenerated, ArgKeyFilePath, shaKeyPath)
 		if store.HmacSha256Secret, err = NewHmacSha256Secret(); err != nil {
 			return nil, err
 		}
@@ -77,7 +79,7 @@ func LoadKeyStoreFromPath(path string) (*Keystore, error) {
 		return nil, err
 	}
 	store.HmacSha256Secret = &HmacSha256Secret{Key: sha}
-	slog.Info("Keyfile loaded", "keyfile.path", shaKeyPath)
+	slog.Info("hmacsha256 keyfile loaded", ArgKeyFilePath, shaKeyPath)
 
 	return store, nil
 }
@@ -104,7 +106,7 @@ func LoadKeyFromPath(keyFilePath string) ([]byte, error) {
 
 	components := strings.Split(string(contents), "\n")
 	if len(components) != 3 {
-		return nil, fmt.Errorf("%s invalid keyfile format", keyFilePath)
+		return nil, fmt.Errorf("'%s' invalid keyfile format", keyFilePath)
 	}
 
 	decoded, err := b64.StdEncoding.DecodeString(components[1])

@@ -53,7 +53,7 @@ func LoadFrom(path string) (*Configuration, error) {
 	if _, err := os.Stat(path); err != nil {
 		configPath = filepath.Join(home, "configserver.yml")
 		if _, err := os.Stat(configPath); err != nil {
-			return nil, fmt.Errorf("'%s' configserver configuration cannot be found or is not accessible", path)
+			return nil, fmt.Errorf("'%s' configserver configuration cannot be found or is not accessible: %w", path, err)
 		}
 	}
 
@@ -107,13 +107,12 @@ type Server struct {
 }
 
 type GitConfiguration struct {
-	RepositoriesCheckoutLocation      string `yaml:"repositoriesCheckoutLocation"`      // Git repositories checkout location
 	RepositoriesConfigurationLocation string `yaml:"repositoriesConfigurationLocation"` // Path where git configuration files can be found
 }
 
 // LogEnvironment logs the current environment configuration
 func (c *Configuration) LogEnvironment() {
-	slog.Info("Configserver Runtime Environment",
+	slog.Info("configserver Runtime Environment",
 		EnvConfigServerEnvironment, c.Environment.Kind,
 		EnvConfigServerHome, c.Home,
 	)
