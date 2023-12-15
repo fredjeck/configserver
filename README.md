@@ -108,5 +108,40 @@ Authorization: Bearer BEARER_TOKEN
 
 ## Encrypting sensitive content
 
-Sensitive content like passwords can be encrypted using the encrypt (for a single value) or tokenize (for a whole pre-tokenizen file) endpoints
+Sensitive content like passwords can be encrypted using the encrypt (for a single value) or tokenize (for a whole pre-tokenizen file) endpoints.
+go-config server replaces sensitive values by encrypted tokens using the following formalism `{enc:ENCRYPTED_VALUE}`
+
+You can encrypt a single value using the encrypt endpoint for instance :
+```http request
+POST http://localhost:8080/api/encrypt HTTP/1.1
+content-type: application/json
+
+This text value will be encrypted
+This one as well
+```
+
+Which will return
+
+```json
+{
+  "token": "{enc:ZkcF7Xk+bnU6axHs/UdtmXKQxVS71+7a13ctfYrRhpbXeKW2ZnkzFujwzx4IJcAGppgdd9hybsrEXA8YUbB1+CqAFjcQj8Yfzi+HuxV1}"
+}
+```
+
+or you could pre-tokenize your configuration file
+```http request
+POST http://localhost:8080/api/tokenize HTTP/1.1
+content-type: text/plain
+
+contentToTokenize:
+ -p1: '{enc:value1}'
+ -p2: '{enc:value2}'
+```
+
+Which would return the tokenized configuration ready to be copied and pasted
+```yaml
+contentToTokenize:
+ -p1: '{enc:value1}'
+ -p2: '{enc:value2}'
+```
 

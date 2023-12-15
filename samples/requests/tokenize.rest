@@ -1,4 +1,6 @@
 POST http://localhost:8080/api/tokenize HTTP/1.1
 content-type: text/plain
 
-p1='{enc:value1}';p2='{enc:value2}'
+contentToTokenize:
+ -p1: '{enc:value1}'
+ -p2: '{enc:value2}'
