@@ -16,6 +16,11 @@
 
 build/
 
-
+# Samples folders
 /samples/home/certs/
 /samples/home/git/
+
+# ID config
+.fleet
+.vscode
+.idea
