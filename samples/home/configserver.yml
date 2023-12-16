@@ -2,5 +2,4 @@ certsLocation:  ./samples/home/certs
 server:
   listenOn: ":8080"
 git:
-  repositoriesCheckoutLocation: ./samples/home/git
   repositoriesConfigurationLocation: ./samples/home/repositories
