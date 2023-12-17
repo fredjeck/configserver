@@ -20,7 +20,8 @@ RUN addgroup --gid ${PGID} configserver \
     && adduser --disabled-password --uid ${PUID} -G configserver  --gecos "" --home /configserver configserver
 
 RUN mkdir /var/run/configserver \
-    && chown configserver:configserver /var/run/configserver
+    && chown configserver:configserver /var/run/configserver \
+    && mkdir /var/run/configserver/repositories
 
 # Create a default configuration file in case nothing is provided
 RUN echo -e "certsLocation:  /var/run/configserver/certs \n\

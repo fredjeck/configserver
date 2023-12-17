@@ -54,11 +54,11 @@ func initialize() {
 	}
 
 	repositoryManager, lastError = repository.NewManager(configuration.GitConfiguration)
-	repositoryManager.Start()
 	if lastError != nil {
 		slog.Error("configServer was not able to start its GIT repository service", "error", lastError)
 		os.Exit(1)
 	}
+	repositoryManager.Start()
 }
 
 func startServer(_ *cobra.Command, _ []string) {
