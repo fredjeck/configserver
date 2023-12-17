@@ -17,13 +17,13 @@ func (server *ConfigServer) encryptValue(w http.ResponseWriter, req *http.Reques
 
 	value, err := io.ReadAll(req.Body)
 	if err != nil {
-		dieErr(w, http.StatusBadRequest, "cannot parse request body", err)
+		dieErr(w, req, http.StatusBadRequest, "cannot parse request body", err)
 		return
 	}
 
 	token, err := encryption.NewEncryptedToken(value, server.keystore.Aes256Key)
 	if err != nil {
-		dieErr(w, http.StatusInternalServerError, "unable to encrypt the provided value", err)
+		dieErr(w, req, http.StatusInternalServerError, "unable to encrypt the provided value", err)
 		return
 	}
 
@@ -33,7 +33,7 @@ func (server *ConfigServer) encryptValue(w http.ResponseWriter, req *http.Reques
 
 	responseJson, err := json.Marshal(response)
 	if err != nil {
-		dieErr(w, http.StatusInternalServerError, "unable to marshall token response", err)
+		dieErr(w, req, http.StatusInternalServerError, "unable to marshall token response", err)
 		return
 	}
 

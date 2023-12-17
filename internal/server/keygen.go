@@ -27,7 +27,7 @@ func (server *ConfigServer) genAes256(w http.ResponseWriter, req *http.Request) 
 	resp := &KeyGenResponse{Kind: "AES256", Key: base64.StdEncoding.EncodeToString(key.Key)}
 	responseJson, err := json.Marshal(resp)
 	if err != nil {
-		dieErr(w, http.StatusInternalServerError, "unable to generate key", err)
+		dieErr(w, req, http.StatusInternalServerError, "unable to generate key", err)
 		return
 	}
 
@@ -48,7 +48,7 @@ func (server *ConfigServer) genHmacSha256(w http.ResponseWriter, req *http.Reque
 	resp := &KeyGenResponse{Kind: "HS256", Key: base64.StdEncoding.EncodeToString(key.Key)}
 	responseJson, err := json.Marshal(resp)
 	if err != nil {
-		dieErr(w, http.StatusInternalServerError, "unable to generate key", err)
+		dieErr(w, req, http.StatusInternalServerError, "unable to generate key", err)
 		return
 	}
 	slog.Debug("new HS256 secret generated", "secret", resp.Key)

@@ -38,7 +38,7 @@ func (server *ConfigServer) authorize(w http.ResponseWriter, req *http.Request) 
 
 	basicAuth, err := b64.StdEncoding.DecodeString(strings.ReplaceAll(authorization, "Basic ", ""))
 	if err != nil {
-		dieErr(w, http.StatusUnauthorized, "incorrect authorization header", err)
+		dieErr(w, req, http.StatusUnauthorized, "incorrect authorization header", err)
 		return
 	}
 
@@ -112,22 +112,21 @@ func (server *ConfigServer) extractToken(w http.ResponseWriter, r *http.Request)
 		return nil, false
 	}
 
-	authStr := strings.ToLower(authorization[0])
-	if !strings.Contains(authStr, "bearer") {
+	bearer := strings.Split(authorization[0], " ")
+	if !strings.Contains(strings.ToLower(bearer[0]), "bearer") {
 		die(w, http.StatusBadRequest, "only bearer authorization is supported")
 		return nil, false
 	}
 
-	token := strings.Replace(authStr, "bearer ", "", -1)
-	err := auth.VerifySignature(token, server.keystore.HmacSha256Secret)
+	err := auth.VerifySignature(bearer[1], server.keystore.HmacSha256Secret)
 	if err != nil {
-		dieErr(w, http.StatusUnauthorized, "not authorized", err)
+		dieErr(w, r, http.StatusUnauthorized, "not authorized", err)
 		return nil, false
 	}
 
-	jwt, err := auth.ParseJwt(token, server.keystore.HmacSha256Secret)
+	jwt, err := auth.ParseJwt(bearer[1], server.keystore.HmacSha256Secret)
 	if err != nil {
-		dieErr(w, http.StatusUnauthorized, "invalid token", err)
+		dieErr(w, r, http.StatusUnauthorized, "invalid token", err)
 		return nil, false
 	}
 

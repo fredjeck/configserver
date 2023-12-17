@@ -65,7 +65,7 @@ func ParseJwt(token string, secret *encryption.HmacSha256Secret) (*JSONWebToken,
 
 	now := time.Now().Unix()
 
-	if jwt.Payload.NotBefore > now || jwt.Payload.Expires > now {
+	if jwt.Payload.NotBefore > now || now > jwt.Payload.Expires {
 		return nil, errors.New("token is expired")
 	}
 

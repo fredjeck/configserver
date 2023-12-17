@@ -2,6 +2,7 @@ name: rust-configserver
 url: https://github.com/fredjeck/configserver
 refreshIntervalSeconds: 10
 token: abcd
-checkoutLocation: ./samples/home/git/rsconfig
+checkoutLocation: /home/fred/configserver_dev/repositories/rsconfig
 clients:
   - myclientid
+  - sample_client

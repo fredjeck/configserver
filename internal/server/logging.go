@@ -1,7 +1,9 @@
 package server
 
 import (
+	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
 	"runtime/debug"
@@ -50,6 +52,13 @@ func RequestLoggingMiddleware() func(http.Handler) http.Handler {
 			}()
 
 			start := time.Now()
+
+			ctx := r.Context()
+			id := uuid.New()
+			ctx = context.WithValue(ctx, ContextRequestId, id.String())
+
+			r = r.WithContext(ctx)
+
 			wrapped := wrapResponseWriter(w)
 			next.ServeHTTP(wrapped, r)
 			elapsed := time.Since(start)
@@ -59,6 +68,7 @@ func RequestLoggingMiddleware() func(http.Handler) http.Handler {
 				slog.String("http.method", r.Method),
 				slog.String("http.path", r.URL.EscapedPath()),
 				slog.Duration("http.duration", elapsed),
+				slog.String(ContextRequestId, id.String()),
 			)
 		}
 		return http.HandlerFunc(fn)

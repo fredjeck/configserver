@@ -19,22 +19,24 @@ ARG PGID=4200
 RUN addgroup --gid ${PGID} configserver \
     && adduser --disabled-password --uid ${PUID} -G configserver  --gecos "" --home /configserver configserver
 
-RUN mkdir /var/run/configserver \
-    && chown configserver:configserver /var/run/configserver \
-    && mkdir /var/run/configserver/repositories
+RUN mkdir /configserver/repositories &&  chown configserver:configserver /configserver/repositories \
+    && mkdir /configserver/certs &&  chown configserver:configserver /configserver/certs
 
 # Create a default configuration file in case nothing is provided
-RUN echo -e "certsLocation:  /var/run/configserver/certs \n\
+RUN echo -e "certsLocation:  /configserver/certs \n\
 server: \n\
   listenOn: ":8080" \n\
 git: \n\
-  repositoriesConfigurationLocation: /var/run/configserver/repositories" >> /var/run/configserver/configserver.yml
+  repositoriesConfigurationLocation: /configserver/repositories" >> /configserver/configserver.yml
 
 
 # Non root users are the best
 USER configserver
 WORKDIR /configserver
+ENV CONFIGSERVER_HOME="/configserver"
 
 EXPOSE 8080
 
 CMD ["configserver"]
+
+VOLUME ["/configserver/certs", "/configserver/repositories"]

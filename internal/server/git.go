@@ -2,13 +2,28 @@ package server
 
 import (
 	"github.com/fredjeck/configserver/internal/encryption"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"log/slog"
 	"net/http"
 	"strings"
 )
 
+var (
+	hitCount = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "git_hit_count",
+		Help: "Total number of files retrieved",
+	}, []string{
+		// Repository from where the files where retrieved
+		"repository",
+		// File path
+		"path",
+	})
+)
+
 // GitRepoMiddleware validates the provided bearer token signature is valid
 func (server *ConfigServer) GitRepoMiddleware() func(http.Handler) http.Handler {
+
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 
@@ -70,6 +85,8 @@ func (server *ConfigServer) GitRepoMiddleware() func(http.Handler) http.Handler 
 			if err != nil {
 				slog.Error("an error occured while sending back repository file", "url_path", path, "error", err)
 			}
+
+			hitCount.With(prometheus.Labels{"repository": repo, "path": filePath}).Inc()
 			return
 		}
 		return http.HandlerFunc(fn)
