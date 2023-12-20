@@ -5,3 +5,4 @@ token: abcd
 checkoutLocation: /home/fred/configserver_dev/repositories/goconfig
 clients:
   - myclientid
+  - sample_client
