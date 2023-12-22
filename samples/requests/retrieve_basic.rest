@@ -1,0 +1,2 @@
+GET http://localhost:8080/git/go-configserver/samples/home/configuration/configuration.yaml HTTP/1.1
+Authorization: Basic c2FtcGxlX2NsaWVudDpjaXZjeVF6STZxSkJtMGFOcEc3YUt0eU5XazY2YWZkMkoxcFVvemhxVk54ajJhTmJXZDlLcGNzOHNLcVJJWTNFOUhVZGJkSDNYaDgwdkFTRk1hMTN2cXFRNmxxZkRmdjZ6UT09

@@ -26,6 +26,7 @@ RUN mkdir /configserver/repositories &&  chown configserver:configserver /config
 RUN echo -e "certsLocation:  /configserver/certs \n\
 server: \n\
   listenOn: ":8080" \n\
+  authorization: "basic" \n\
 git: \n\
   repositoriesConfigurationLocation: /configserver/repositories" >> /configserver/configserver.yml
 

@@ -1,7 +1,6 @@
 package server
 
 import (
-	b64 "encoding/base64"
 	"encoding/json"
 	"github.com/fredjeck/configserver/internal/auth"
 	"log/slog"
@@ -30,21 +29,9 @@ func (server *ConfigServer) authorize(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	authorization := req.Header.Get("Authorization")
-	if len(authorization) == 0 {
-		die(w, http.StatusUnauthorized, "missing authorization header")
-		return
-	}
-
-	basicAuth, err := b64.StdEncoding.DecodeString(strings.ReplaceAll(authorization, "Basic ", ""))
+	authorization, err := auth.FromRequest(req, server.keystore, auth.AuthorizationKindBasic)
 	if err != nil {
-		dieErr(w, req, http.StatusUnauthorized, "incorrect authorization header", err)
-		return
-	}
-
-	credentials := strings.Split(string(basicAuth), ":")
-	if len(credentials) != 2 {
-		die(w, http.StatusUnauthorized, "incorrect authorization header")
+		dieErr(w, req, http.StatusUnauthorized, "authorization failed", err)
 		return
 	}
 
@@ -65,21 +52,12 @@ func (server *ConfigServer) authorize(w http.ResponseWriter, req *http.Request) 
 		die(w, http.StatusBadRequest, "at least one scope is required")
 	}
 
-	clientId := credentials[0]
-	if !auth.ValidateClientSecret(clientId, credentials[1], server.keystore.Aes256Key) {
-		slog.Warn("login rejected", "client_id", clientId)
-		dief(w, http.StatusUnauthorized, "'%s' : unauthorized", clientId)
-		return
-	}
-
-	slog.Info("successful login", "client_id", clientId)
+	slog.Info("successful login", "client_id", authorization.ClientId())
 
 	var allowedScopes []string
 	for _, scope := range scopes {
-		if repo, ok := server.repository.Repositories[scope]; ok {
-			if repo.IsClientAllowed(clientId) {
-				allowedScopes = append(allowedScopes, scope)
-			}
+		if server.repository.IsClientAllowed(scope, authorization.ClientId()) {
+			allowedScopes = append(allowedScopes, scope)
 		}
 	}
 
@@ -89,7 +67,7 @@ func (server *ConfigServer) authorize(w http.ResponseWriter, req *http.Request) 
 	token := auth.NewJSONWebToken()
 	token.Payload.Audience = allowedScopes
 	token.Payload.Issuer = "ConfigServer"
-	token.Payload.Subject = clientId
+	token.Payload.Subject = authorization.ClientId()
 
 	response.AccessToken = token.Pack(server.keystore.HmacSha256Secret)
 	response.ExpiresIn = token.Payload.Expires - token.Payload.IssuedAt
@@ -103,32 +81,4 @@ func (server *ConfigServer) authorize(w http.ResponseWriter, req *http.Request) 
 
 	w.Header().Add("Content-Type", "application/json")
 	server.writeResponse(http.StatusOK, values, w)
-}
-
-func (server *ConfigServer) extractToken(w http.ResponseWriter, r *http.Request) (*auth.JSONWebToken, bool) {
-	authorization, ok := r.Header["Authorization"]
-	if !ok {
-		die(w, http.StatusBadRequest, "missing authorization header")
-		return nil, false
-	}
-
-	bearer := strings.Split(authorization[0], " ")
-	if !strings.Contains(strings.ToLower(bearer[0]), "bearer") {
-		die(w, http.StatusBadRequest, "only bearer authorization is supported")
-		return nil, false
-	}
-
-	err := auth.VerifySignature(bearer[1], server.keystore.HmacSha256Secret)
-	if err != nil {
-		dieErr(w, r, http.StatusUnauthorized, "not authorized", err)
-		return nil, false
-	}
-
-	jwt, err := auth.ParseJwt(bearer[1], server.keystore.HmacSha256Secret)
-	if err != nil {
-		dieErr(w, r, http.StatusUnauthorized, "invalid token", err)
-		return nil, false
-	}
-
-	return jwt, true
 }

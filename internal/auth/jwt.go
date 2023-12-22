@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/fredjeck/configserver/internal/repository"
 	"strings"
 	"time"
 
@@ -54,6 +55,27 @@ func (jwt *JSONWebToken) Pack(secret *encryption.HmacSha256Secret) string {
 	hash := encryption.HmacSha256Hash([]byte(tk), secret)
 	b64Hash := base64.RawURLEncoding.EncodeToString(hash)
 	return fmt.Sprintf("%s.%s", tk, b64Hash)
+}
+
+func (jwt *JSONWebToken) token() string {
+	header, _ := jsonb64UrlEncode(jwt.Header)
+	body, _ := jsonb64UrlEncode(jwt.Payload)
+	return fmt.Sprintf("%s.%s", header, body)
+}
+
+func (jwt *JSONWebToken) ClientId() string {
+	return jwt.Payload.Subject
+}
+
+func (jwt *JSONWebToken) IsAllowedRepository(mgr *repository.Manager, repository string) bool {
+	found := false
+	for _, aud := range jwt.Payload.Audience {
+		if strings.EqualFold(aud, repository) {
+			found = true
+			break
+		}
+	}
+	return found && mgr.IsClientAllowed(repository, jwt.Payload.Subject)
 }
 
 // ParseJwt parses a jwt token string, validates its signature and expiration and returns the token
@@ -122,12 +144,6 @@ func VerifySignature(token string, secret *encryption.HmacSha256Secret) error {
 	}
 
 	return nil
-}
-
-func (jwt *JSONWebToken) token() string {
-	header, _ := jsonb64UrlEncode(jwt.Header)
-	body, _ := jsonb64UrlEncode(jwt.Payload)
-	return fmt.Sprintf("%s.%s", header, body)
 }
 
 func jsonb64UrlEncode(e interface{}) (string, error) {

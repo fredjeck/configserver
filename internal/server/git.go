@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/fredjeck/configserver/internal/auth"
 	"github.com/fredjeck/configserver/internal/encryption"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -33,6 +34,12 @@ func (server *ConfigServer) GitRepoMiddleware() func(http.Handler) http.Handler 
 				return
 			}
 
+			authorization, err := auth.FromRequest(r, server.keystore, server.authorization...)
+			if err != nil {
+				dieErr(w, r, http.StatusUnauthorized, "authorization failed", err)
+				return
+			}
+
 			if r.Method != http.MethodGet {
 				dief(w, http.StatusBadRequest, "'%s' unsupported http verb", r.Method)
 				return
@@ -48,20 +55,9 @@ func (server *ConfigServer) GitRepoMiddleware() func(http.Handler) http.Handler 
 			repo := path[0:idx]
 			filePath := path[idx+1:]
 
-			token, ok := server.extractToken(w, r)
-			if !ok {
-				return
-			}
+			authorized := authorization.IsAllowedRepository(server.repository, repo)
 
-			found := false
-			for _, aud := range token.Payload.Audience {
-				if strings.EqualFold(aud, repo) {
-					found = true
-					break
-				}
-			}
-
-			if !found {
+			if !authorized {
 				die(w, http.StatusUnauthorized, "repository access is not allowed")
 				return
 			}

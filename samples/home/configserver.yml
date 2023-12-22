@@ -1,5 +1,8 @@
 certsLocation:  ./samples/home/certs
 server:
   listenOn: ":8080"
+  authorization:
+    - basic
+    - bearer
 git:
   repositoriesConfigurationLocation: ./samples/home/repositories

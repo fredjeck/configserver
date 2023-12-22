@@ -1,2 +1,0 @@
-GET http://localhost:8080/git/rust-configserver/README.md HTTP/1.1
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJDb25maWdTZXJ2ZXIiLCJzdWIiOiJzYW1wbGVfY2xpZW50IiwiYXVkIjpbInJ1c3QtY29uZmlnc2VydmVyIl0sIm5iZiI6MTcwMjg0NjYzOCwiaWF0IjoxNzAyODQ2NjM4LCJleHAiOjE3MDI5MzMwMzh9.QO8qGN002U0-k17PIb-G0nGa5VbA_36p1W8oTzXzhpE

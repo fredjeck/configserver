@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/fredjeck/configserver/internal/auth"
 	"github.com/fredjeck/configserver/internal/repository"
 	"log/slog"
 	"net/http"
@@ -20,11 +21,16 @@ type ConfigServer struct {
 	configuration *config.Configuration
 	keystore      *encryption.Keystore
 	repository    *repository.Manager
+	authorization []auth.AuthorizationKind
 }
 
 // New creates a new instance of ConfigServer using the supplioed configuration
 func New(configuration *config.Configuration, keystore *encryption.Keystore, repository *repository.Manager) *ConfigServer {
-	return &ConfigServer{configuration: configuration, keystore: keystore, repository: repository}
+	srv := &ConfigServer{configuration: configuration, keystore: keystore, repository: repository, authorization: []auth.AuthorizationKind{}}
+	for _, akind := range configuration.Authorization {
+		srv.authorization = append(srv.authorization, auth.AuthorizationKind(akind))
+	}
+	return srv
 }
 
 // Start starts the server

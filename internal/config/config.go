@@ -38,7 +38,6 @@ func InitLogging() {
 // LoadFrom loads the configuration file from the provided path
 // This method always return a Configuration object with at least the Environment configuration loaded
 func LoadFrom(path string) (*Configuration, error) {
-
 	kind := strings.ToLower(os.Getenv(EnvConfigServerEnvironment))
 	if len(kind) == 0 {
 		kind = "production"
@@ -103,7 +102,8 @@ type Environment struct {
 
 // Server groups all the configserver related settings
 type Server struct {
-	ListenOn string `yaml:"listenOn"` // address and port on which the server will listen for incoming requests
+	ListenOn      string   `yaml:"listenOn"`      // address and port on which the server will listen for incoming requests
+	Authorization []string `yaml:"authorization"` // list of supported authorization
 }
 
 type GitConfiguration struct {

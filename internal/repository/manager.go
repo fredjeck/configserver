@@ -85,6 +85,16 @@ func (mgr *Manager) Get(repository string, path string) ([]byte, error) {
 	return contents, nil
 }
 
+// IsClientAllowed checks if the provided client identifier is configured for repository access
+func (mgr *Manager) IsClientAllowed(repository string, client string) bool {
+	if repo, ok := mgr.Repositories[repository]; ok {
+		if repo.IsClientAllowed(client) {
+			return true
+		}
+	}
+	return false
+}
+
 // listen reads the heartbeat channel for beholder events
 func (mgr *Manager) listen() {
 	for event := range mgr.Heartbeat {
