@@ -75,3 +75,16 @@ func TestSignature(t *testing.T) {
 
 	assert.NoError(t, kp.Verify([]byte(message), signature))
 }
+
+func TestTokens(t *testing.T) {
+	kp, err := NewKeyVault()
+	assert.NoError(t, err)
+
+	value := "abcdefg123456"
+	token, err := kp.CreateToken([]byte(value))
+	assert.NoError(t, err)
+
+	decoded, err := kp.DecryptToken(token)
+	assert.NoError(t, err)
+	assert.Equal(t, value, string(decoded))
+}

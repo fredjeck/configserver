@@ -21,8 +21,6 @@ type Aes256Key struct {
 }
 
 var ErrMalformedCipherText = errors.New("malformed cipher text")
-var ErrInvalidToken = errors.New("invalid token")
-var ErrCannotDecryptTokenContent = errors.New("unable to decrypt the token's content")
 
 // NewAes256Key generates a random 256-bit key
 func NewAes256Key() (*Aes256Key, error) {

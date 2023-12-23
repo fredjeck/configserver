@@ -22,11 +22,12 @@ type ConfigServer struct {
 	keystore      *encryption.Keystore
 	repository    *repository.Manager
 	authorization []auth.AuthorizationKind
+	vault         *encryption.KeyVault
 }
 
 // New creates a new instance of ConfigServer using the supplioed configuration
-func New(configuration *config.Configuration, keystore *encryption.Keystore, repository *repository.Manager) *ConfigServer {
-	srv := &ConfigServer{configuration: configuration, keystore: keystore, repository: repository, authorization: []auth.AuthorizationKind{}}
+func New(configuration *config.Configuration, keystore *encryption.Keystore, repository *repository.Manager, vault *encryption.KeyVault) *ConfigServer {
+	srv := &ConfigServer{configuration: configuration, keystore: keystore, repository: repository, authorization: []auth.AuthorizationKind{}, vault: vault}
 	for _, akind := range configuration.Authorization {
 		srv.authorization = append(srv.authorization, auth.AuthorizationKind(akind))
 	}

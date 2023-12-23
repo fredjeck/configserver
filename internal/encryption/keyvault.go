@@ -5,13 +5,14 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
-	"crypto/sha512"
 	"crypto/x509"
+	b64 "encoding/base64"
 	"encoding/pem"
 	"errors"
 	"fmt"
 	"os"
 	"path"
+	"regexp"
 )
 
 // KeyVault is a wrapper around an rsa Private key
@@ -21,7 +22,7 @@ type KeyVault struct {
 
 // Generates a new keyvault - creates a new rsa Private key
 func NewKeyVault() (*KeyVault, error) {
-	private, err := rsa.GenerateKey(rand.Reader, 4096)
+	private, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +119,7 @@ func (kp *KeyVault) SaveTo(location string) error {
 // Encrypt encrypts the provided message with this KeyVault key
 func (kp *KeyVault) Encrypt(message []byte) ([]byte, error) {
 	return rsa.EncryptOAEP(
-		sha512.New(),
+		sha256.New(),
 		rand.Reader,
 		&kp.PrivateKey.PublicKey,
 		message,
@@ -127,11 +128,11 @@ func (kp *KeyVault) Encrypt(message []byte) ([]byte, error) {
 
 // Decrypt decrypts the provided message with this KeyVault private key
 func (kp *KeyVault) Decrypt(encryptedBytes []byte) ([]byte, error) {
-	return kp.PrivateKey.Decrypt(nil, encryptedBytes, &rsa.OAEPOptions{Hash: crypto.SHA512})
+	return kp.PrivateKey.Decrypt(nil, encryptedBytes, &rsa.OAEPOptions{Hash: crypto.SHA256})
 }
 
-// hash creates a message digest for its further signature
-func hash(message []byte) ([]byte, error) {
+// Hash creates a message digest for its further signature
+func (kp *KeyVault) Hash(message []byte) ([]byte, error) {
 	hasher := sha256.New()
 	if _, err := hasher.Write(message); err != nil {
 		return nil, err
@@ -141,7 +142,7 @@ func hash(message []byte) ([]byte, error) {
 
 // Sign signs the message
 func (kp *KeyVault) Sign(message []byte) ([]byte, error) {
-	messageDigest, err := hash(message)
+	messageDigest, err := kp.Hash(message)
 	if err != nil {
 		return nil, err
 	}
@@ -151,10 +152,51 @@ func (kp *KeyVault) Sign(message []byte) ([]byte, error) {
 
 // Verify verifies the provided signature is correct, if so return error is nil
 func (kp *KeyVault) Verify(message []byte, signature []byte) error {
-	messageDigest, err := hash(message)
+	messageDigest, err := kp.Hash(message)
 	if err != nil {
 		return err
 	}
 
 	return rsa.VerifyPKCS1v15(&kp.PrivateKey.PublicKey, crypto.SHA256, messageDigest, signature)
+}
+
+// Token management
+
+var ErrInvalidToken = errors.New("invalid token")
+var ErrCannotDecryptTokenContent = errors.New("unable to decrypt the token's content")
+
+// CreateToken encrypts the provided text into a substitution token
+func (kp *KeyVault) CreateToken(plaintext []byte) (string, error) {
+	enc, err := kp.Encrypt(plaintext)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("{enc:%s}", b64.StdEncoding.EncodeToString(enc)), nil
+}
+
+// Regex used to extract the value from a substitution token
+var reToken = regexp.MustCompile(`\{enc:(.*?)}`)
+
+// DecryptToken extracts the payload from the provided substition token and decrypts its value using the given key
+func (kp *KeyVault) DecryptToken(token string) ([]byte, error) {
+	if len(token) == 0 {
+		return nil, ErrInvalidToken
+	}
+
+	match := reTokenContent.FindStringSubmatch(token)
+	if len(match) != 2 {
+		return nil, ErrInvalidToken
+	}
+
+	decoded, err := b64.StdEncoding.DecodeString(match[1])
+	if err != nil {
+		return nil, ErrCannotDecryptTokenContent
+	}
+
+	value, err := kp.Decrypt(decoded)
+	if err != nil {
+		return nil, ErrCannotDecryptTokenContent
+	}
+
+	return value, nil
 }

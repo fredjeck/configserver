@@ -22,6 +22,7 @@ var (
 	configuration         *config.Configuration
 	keystore              *encryption.Keystore
 	repositoryManager     *repository.Manager
+	vault                 *encryption.KeyVault
 	lastError             error
 )
 
@@ -53,6 +54,12 @@ func initialize() {
 		os.Exit(1)
 	}
 
+	vault, lastError = encryption.LoadKeyVault(configuration.CertsLocation, true)
+	if lastError != nil {
+		slog.Error("configServer was not able to load its keyvault", "error", lastError)
+		os.Exit(1)
+	}
+
 	repositoryManager, lastError = repository.NewManager(configuration.GitConfiguration)
 	if lastError != nil {
 		slog.Error("configServer was not able to start its GIT repository service", "error", lastError)
@@ -63,5 +70,5 @@ func initialize() {
 
 func startServer(_ *cobra.Command, _ []string) {
 	slog.Info("Starting ConfigServer ...")
-	server.New(configuration, keystore, repositoryManager).Start()
+	server.New(configuration, keystore, repositoryManager, vault).Start()
 }

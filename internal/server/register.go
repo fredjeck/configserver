@@ -43,7 +43,7 @@ func (server *ConfigServer) generateClientSecret(w http.ResponseWriter, req *htt
 		registerRequest.ClientID = uuid.NewString()
 	}
 
-	clientSecret, err := auth.GenerateClientSecret(registerRequest.ClientID, server.keystore.Aes256Key)
+	clientSecret, err := auth.GenerateClientSecret(registerRequest.ClientID, server.vault)
 	if err != nil {
 		die(w, http.StatusInternalServerError, "failed to generate client secret")
 		return
