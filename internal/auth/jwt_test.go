@@ -9,36 +9,39 @@ import (
 
 func TestJSONWebToken(t *testing.T) {
 	token := NewJSONWebToken()
+	vault, err := encryption.NewKeyVault()
+	assert.NoError(t, err)
 
 	token.Payload.Subject = "test"
 	token.Payload.Issuer = "ConfigServer"
 
-	secret, _ := encryption.NewHmacSha256Secret()
-	jwt := token.Pack(secret)
+	jwt := token.Pack(vault)
 	assert.Greater(t, len(jwt), 20)
 }
 
 func TestVerifySignature(t *testing.T) {
 	token := NewJSONWebToken()
+	vault, err := encryption.NewKeyVault()
+	assert.NoError(t, err)
 
 	token.Payload.Subject = "test"
 	token.Payload.Issuer = "ConfigServer"
 
-	secret, _ := encryption.NewHmacSha256Secret()
-	jwt := token.Pack(secret)
-	err := VerifySignature(jwt, secret)
+	jwt := token.Pack(vault)
+	err = VerifySignature(jwt, vault)
 	assert.NoError(t, err)
 }
 
 func TestUnpack(t *testing.T) {
 	token := NewJSONWebToken()
+	vault, err := encryption.NewKeyVault()
+	assert.NoError(t, err)
 
 	token.Payload.Subject = "test"
 	token.Payload.Issuer = "ConfigServer"
 
-	secret, _ := encryption.NewHmacSha256Secret()
-	jwt := token.Pack(secret)
-	tk, err := Unpack(jwt, secret)
+	jwt := token.Pack(vault)
+	tk, err := Unpack(jwt, vault)
 	assert.NoError(t, err)
 
 	assert.Equal(t, "test", tk.Payload.Subject)

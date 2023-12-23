@@ -6,7 +6,7 @@ import (
 )
 
 // SubstituteTokens replaces all the encoded token by their clear text value
-func SubstituteTokens(file []byte, key *Aes256Key) ([]byte, error) {
+func SubstituteTokens(file []byte, vault *KeyVault) ([]byte, error) {
 	text := string(file)
 
 	rx := regexp.MustCompile("({enc:.*?})")
@@ -16,7 +16,7 @@ func SubstituteTokens(file []byte, key *Aes256Key) ([]byte, error) {
 	}
 
 	for _, match := range matches {
-		clearText, err := DecryptToken(match, key)
+		clearText, err := vault.DecryptToken(match)
 		if err != nil {
 			continue
 		}
@@ -28,7 +28,7 @@ func SubstituteTokens(file []byte, key *Aes256Key) ([]byte, error) {
 }
 
 // Tokenize replaces a pre-tokenized file tokens with encrypted tokens
-func Tokenize(file []byte, key *Aes256Key) ([]byte, error) {
+func Tokenize(file []byte, vault *KeyVault) ([]byte, error) {
 	text := string(file)
 
 	rx := regexp.MustCompile("({enc:.*?})")
@@ -39,7 +39,7 @@ func Tokenize(file []byte, key *Aes256Key) ([]byte, error) {
 
 	for _, match := range matches {
 		val := match[5 : len(match)-2]
-		token, err := NewEncryptedToken([]byte(val), key)
+		token, err := vault.CreateToken([]byte(val))
 		if err != nil {
 			continue
 		}

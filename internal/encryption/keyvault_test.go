@@ -60,7 +60,7 @@ func TestEncryptDecrypt(t *testing.T) {
 	encrypted, err := kp.Encrypt([]byte(message))
 	assert.NoError(t, err)
 
-	decrypted, err := kp.Decrypt([]byte(encrypted))
+	decrypted, err := kp.Decrypt(encrypted)
 	assert.NoError(t, err)
 	assert.Equal(t, []byte(message), decrypted)
 }

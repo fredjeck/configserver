@@ -20,7 +20,6 @@ var (
 	}
 	configurationFilePath string
 	configuration         *config.Configuration
-	keystore              *encryption.Keystore
 	repositoryManager     *repository.Manager
 	vault                 *encryption.KeyVault
 	lastError             error
@@ -48,12 +47,6 @@ func initialize() {
 
 	configuration.LogEnvironment()
 
-	keystore, lastError = encryption.LoadKeyStoreFromPath(configuration.CertsLocation)
-	if lastError != nil {
-		slog.Error("configServer was not able to load its keystore", "error", lastError)
-		os.Exit(1)
-	}
-
 	vault, lastError = encryption.LoadKeyVault(configuration.CertsLocation, true)
 	if lastError != nil {
 		slog.Error("configServer was not able to load its keyvault", "error", lastError)
@@ -70,5 +63,5 @@ func initialize() {
 
 func startServer(_ *cobra.Command, _ []string) {
 	slog.Info("Starting ConfigServer ...")
-	server.New(configuration, keystore, repositoryManager, vault).Start()
+	server.New(configuration, repositoryManager, vault).Start()
 }

@@ -20,7 +20,7 @@ type KeyVault struct {
 	PrivateKey *rsa.PrivateKey
 }
 
-// Generates a new keyvault - creates a new rsa Private key
+// NewKeyVault generates a new keyvault - creates a new rsa Private key
 func NewKeyVault() (*KeyVault, error) {
 	private, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
@@ -183,7 +183,7 @@ func (kp *KeyVault) DecryptToken(token string) ([]byte, error) {
 		return nil, ErrInvalidToken
 	}
 
-	match := reTokenContent.FindStringSubmatch(token)
+	match := reToken.FindStringSubmatch(token)
 	if len(match) != 2 {
 		return nil, ErrInvalidToken
 	}

@@ -2,7 +2,6 @@
 package server
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/fredjeck/configserver/internal/auth"
@@ -19,15 +18,14 @@ import (
 // ConfigServer is a simple HTTP server allowing to securely expose the files provided by the underlying git repositories configuration.
 type ConfigServer struct {
 	configuration *config.Configuration
-	keystore      *encryption.Keystore
 	repository    *repository.Manager
 	authorization []auth.AuthorizationKind
 	vault         *encryption.KeyVault
 }
 
 // New creates a new instance of ConfigServer using the supplioed configuration
-func New(configuration *config.Configuration, keystore *encryption.Keystore, repository *repository.Manager, vault *encryption.KeyVault) *ConfigServer {
-	srv := &ConfigServer{configuration: configuration, keystore: keystore, repository: repository, authorization: []auth.AuthorizationKind{}, vault: vault}
+func New(configuration *config.Configuration, repository *repository.Manager, vault *encryption.KeyVault) *ConfigServer {
+	srv := &ConfigServer{configuration: configuration, repository: repository, authorization: []auth.AuthorizationKind{}, vault: vault}
 	for _, akind := range configuration.Authorization {
 		srv.authorization = append(srv.authorization, auth.AuthorizationKind(akind))
 	}
@@ -41,10 +39,6 @@ func New(configuration *config.Configuration, keystore *encryption.Keystore, rep
 // - Adds support for request logging and prometheus metrics
 func (server *ConfigServer) Start() {
 
-	secret, _ := encryption.NewHmacSha256Secret()
-
-	slog.Info("Secret", "secret", base64.StdEncoding.EncodeToString(secret.Key))
-
 	router := http.NewServeMux()
 	loggingMiddleware := RequestLoggingMiddleware()
 	gitMiddleware := server.GitRepoMiddleware()
@@ -56,10 +50,6 @@ func (server *ConfigServer) Start() {
 
 	// Tokenizes the provided data
 	router.HandleFunc("/api/tokenize", server.tokenizeText)
-
-	// Generate keys
-	router.HandleFunc("/api/keygen/aes", server.genAes256)
-	router.HandleFunc("/api/keygen/hmac", server.genHmacSha256)
 
 	// Obtain a new ClientID
 	router.HandleFunc("/api/register", server.generateClientSecret)

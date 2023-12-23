@@ -29,7 +29,7 @@ func (server *ConfigServer) authorize(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	authorization, err := auth.FromRequest(req, server.keystore, auth.AuthorizationKindBasic)
+	authorization, err := auth.FromRequest(req, server.vault, auth.AuthorizationKindBasic)
 	if err != nil {
 		dieErr(w, req, http.StatusUnauthorized, "authorization failed", err)
 		return
@@ -69,7 +69,7 @@ func (server *ConfigServer) authorize(w http.ResponseWriter, req *http.Request) 
 	token.Payload.Issuer = "ConfigServer"
 	token.Payload.Subject = authorization.ClientId()
 
-	response.AccessToken = token.Pack(server.keystore.HmacSha256Secret)
+	response.AccessToken = token.Pack(server.vault)
 	response.ExpiresIn = token.Payload.Expires - token.Payload.IssuedAt
 	response.Scope = strings.Join(allowedScopes, " ")
 

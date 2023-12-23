@@ -9,19 +9,23 @@ import (
 )
 
 func TestCreateSecret(t *testing.T) {
-	key, _ := encryption.NewAes256Key()
-	secret, err := GenerateClientSecret("clientid", key)
+	vault, err := encryption.NewKeyVault()
+	assert.NoError(t, err)
+
+	secret, err := GenerateClientSecret("clientid", vault)
 
 	assert.NoError(t, err)
 	assert.NotEmpty(t, secret)
 }
 
 func TestValidateSecret(t *testing.T) {
-	key, _ := encryption.NewAes256Key()
-	secret, err := GenerateClientSecret("clientid", key)
+	vault, err := encryption.NewKeyVault()
+	assert.NoError(t, err)
+
+	secret, err := GenerateClientSecret("clientid", vault)
 
 	assert.NoError(t, err)
 	assert.NotEmpty(t, secret)
 
-	assert.True(t, ValidateClientSecret("clientid", secret, key))
+	assert.True(t, ValidateClientSecret("clientid", secret, vault))
 }

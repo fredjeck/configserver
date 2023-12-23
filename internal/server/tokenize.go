@@ -16,7 +16,7 @@ func (server *ConfigServer) tokenizeText(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	tokenized, err := encryption.Tokenize(value, server.keystore.Aes256Key)
+	tokenized, err := encryption.Tokenize(value, server.vault)
 	if err != nil {
 		dieErr(w, req, http.StatusInternalServerError, "unable to encrypt the provided file", err)
 		return

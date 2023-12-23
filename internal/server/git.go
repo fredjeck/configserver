@@ -34,7 +34,7 @@ func (server *ConfigServer) GitRepoMiddleware() func(http.Handler) http.Handler 
 				return
 			}
 
-			authorization, err := auth.FromRequest(r, server.keystore, server.authorization...)
+			authorization, err := auth.FromRequest(r, server.vault, server.authorization...)
 			if err != nil {
 				dieErr(w, r, http.StatusUnauthorized, "authorization failed", err)
 				return
@@ -69,7 +69,7 @@ func (server *ConfigServer) GitRepoMiddleware() func(http.Handler) http.Handler 
 				return
 			}
 
-			clearText, err := encryption.SubstituteTokens(content, server.keystore.Aes256Key)
+			clearText, err := encryption.SubstituteTokens(content, server.vault)
 			if err != nil {
 				dief(w, http.StatusNotFound, "'%s' : unable to decrypt file", filePath)
 				return

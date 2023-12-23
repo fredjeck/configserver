@@ -39,7 +39,7 @@ const TokenValidityDays = 1
 // NewJSONWebToken creates a new empty JSON Web Token
 func NewJSONWebToken() *JSONWebToken {
 	return &JSONWebToken{
-		Header: &JSONWebTokenHeader{Alg: "HS256", Type: "JWT"},
+		Header: &JSONWebTokenHeader{Alg: "RS256", Type: "JWT"},
 		Payload: &JSONWebTokenPayload{
 			NotBefore: time.Now().Unix(),
 			IssuedAt:  time.Now().Unix(),
@@ -50,9 +50,12 @@ func NewJSONWebToken() *JSONWebToken {
 
 // Pack generates the token by marshalling the content to JSON, formatting the output into b64UrlEncoded strings
 // and by appending the token signature
-func (jwt *JSONWebToken) Pack(secret *encryption.HmacSha256Secret) string {
+func (jwt *JSONWebToken) Pack(vault *encryption.KeyVault) string {
 	tk := jwt.token()
-	hash := encryption.HmacSha256Hash([]byte(tk), secret)
+	hash, err := vault.Sign([]byte(tk))
+	if err != nil {
+		return ""
+	}
 	b64Hash := base64.RawURLEncoding.EncodeToString(hash)
 	return fmt.Sprintf("%s.%s", tk, b64Hash)
 }
@@ -79,8 +82,8 @@ func (jwt *JSONWebToken) IsAllowedRepository(mgr *repository.Manager, repository
 }
 
 // ParseJwt parses a jwt token string, validates its signature and expiration and returns the token
-func ParseJwt(token string, secret *encryption.HmacSha256Secret) (*JSONWebToken, error) {
-	jwt, err := Unpack(token, secret)
+func ParseJwt(token string, vault *encryption.KeyVault) (*JSONWebToken, error) {
+	jwt, err := Unpack(token, vault)
 	if err != nil {
 		return nil, err
 	}
@@ -95,8 +98,8 @@ func ParseJwt(token string, secret *encryption.HmacSha256Secret) (*JSONWebToken,
 }
 
 // Unpack unmarshall a b64 encoded JWT to a JSONWebToken object
-func Unpack(token string, secret *encryption.HmacSha256Secret) (*JSONWebToken, error) {
-	if err := VerifySignature(token, secret); err != nil {
+func Unpack(token string, vault *encryption.KeyVault) (*JSONWebToken, error) {
+	if err := VerifySignature(token, vault); err != nil {
 		return nil, err
 	}
 	components := strings.Split(token, ".")
@@ -127,7 +130,7 @@ func Unpack(token string, secret *encryption.HmacSha256Secret) (*JSONWebToken, e
 
 // VerifySignature validates a token has been signed with the provided key
 // Simplistic approach, does not verify the alg and enforces HMAC
-func VerifySignature(token string, secret *encryption.HmacSha256Secret) error {
+func VerifySignature(token string, vault *encryption.KeyVault) error {
 	components := strings.Split(token, ".")
 	if len(components) != 3 {
 		return fmt.Errorf("malformed jwt token - expecting three components but found %d parts", len(components))
@@ -136,11 +139,14 @@ func VerifySignature(token string, secret *encryption.HmacSha256Secret) error {
 	tk := components[0] + "." + components[1]
 	signature := components[2]
 
-	hash := encryption.HmacSha256Hash([]byte(tk), secret)
+	hash, err := vault.Sign([]byte(tk))
+	if err != nil {
+		return errors.New("unable to verify token signature")
+	}
 	b64Hash := base64.RawURLEncoding.EncodeToString(hash)
 
 	if strings.Compare(b64Hash, signature) != 0 {
-		return fmt.Errorf("invalid token signature")
+		return errors.New("invalid token signature")
 	}
 
 	return nil

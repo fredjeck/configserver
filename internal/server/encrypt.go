@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-
-	"github.com/fredjeck/configserver/internal/encryption"
 )
 
 type EncryptResponse struct {
@@ -21,7 +19,7 @@ func (server *ConfigServer) encryptValue(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	token, err := encryption.NewEncryptedToken(value, server.keystore.Aes256Key)
+	token, err := server.vault.CreateToken(value)
 	if err != nil {
 		dieErr(w, req, http.StatusInternalServerError, "unable to encrypt the provided value", err)
 		return
