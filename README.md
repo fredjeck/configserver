@@ -16,14 +16,14 @@ configserver supports :
 
 ## Philosophy
 
-configserver aims at simplicity and security (will it tries to). Goal is to limit the configuration hassle and make use of conventions.
+Configserver aims at simplicity and security (well it tries to). Goal is to limit the configuration hassle and make use of conventions.
 
 ## Configuring
 
 ### General configuration
 
-configserver is configured via a central `configserver.yml` file.
-This file is located at startup either using the `-c` command line argument or is located in the path pointed by the `CONFIGSERVER_HOME`environment variable.
+Configserver is configured via a central `configserver.yml` file.
+This file is located at startup either using the `-c` command line argument or is located by the path pointed by the `CONFIGSERVER_HOME`environment variable.
 If nothing is provided, configserver will attempt to locate this file in the `/var/run/configserver` directory
 
 ```yaml
@@ -32,6 +32,9 @@ certsLocation:  /var/run/configserver/certs
 server:
   # Network interface and port on which the server listens for incoming HTTP requests
   listenOn: ":8080"
+  authorization:
+    - basic
+    - bearer
 git:
   # Path where git repositories configs are stored   
   repositoriesConfigurationLocation: ./samples/home/repositories
@@ -55,7 +58,11 @@ clients:
   - myclientid
 ```
 
+The `clients` array lists all the client ids allowed to access the repository, please see *registering a new client* below
+
 ## Using configserver
+
+Configserver is mostly used via its API
 
 ### Registering a new client
 
@@ -77,10 +84,17 @@ Will generate a client secret for the provided client id
 }
 ```
 
-### Accessing Repository files
+### Auhtorization
+
+#### Configuring Authorization
+
+Configserver supports the following authorization schemes: Basic, Bearer or None.
+Enabled authorization schemes are defined in the main configuration file.
+
+#### Bearer Tokens
 
 Before accessing files, the client needs to obtain a bearer token.
-The targetted repositories names need to be specified using the scope parameter
+The targeted repository names need to be specified using the scope parameter.
 Client authentication needs to be passed using the basic authentication header
 ```http request
 POST http://localhost:8080/oauth2/authorize HTTP/1.1
@@ -111,7 +125,7 @@ Authorization: Bearer BEARER_TOKEN
 Sensitive content like passwords can be encrypted using the encrypt (for a single value) or tokenize (for a whole pre-tokenizen file) endpoints.
 go-config server replaces sensitive values by encrypted tokens using the following formalism `{enc:ENCRYPTED_VALUE}`
 
-You can encrypt a single value using the encrypt endpoint for instance :
+You can encrypt a single value using the encrypt endpoint or using the tokenize command:
 ```http request
 POST http://localhost:8080/api/encrypt HTTP/1.1
 content-type: application/json
@@ -141,7 +155,15 @@ contentToTokenize:
 Which would return the tokenized configuration ready to be copied and pasted
 ```yaml
 contentToTokenize:
- -p1: '{enc:value1}'
- -p2: '{enc:value2}'
+ -p1: '{enc:ZkcF7Xk+bnU6axHs/UdtmXKQxVS71+7a13ctfYrRhpbXeKW2ZnkzFujwzx4IJcAGppgdd9hybsrEXA8YUbB1+CqAFjcQj8Yfzi+HuxV1}'
+ -p2: '{enc:ZkcF7Xk+bnU6axHs/UdtmXKQxVS71+7a13ctfYrRhpbXeKW2ZnkzFujwzx4IJcAGppgdd9hybsrEXA8YUbB1+CqAFjcQj8Yfzi+HuxV1}'
 ```
 
+### Using the tokenize command
+
+Like with the endpoint, prepare your files to be tokenized.
+Then simply call the following command (be aware you will require the same private key used on your instance to be available locally)
+
+```shell
+configserver tokenize -k ./certs -f configuration.yaml -o tokenized.yaml
+```
