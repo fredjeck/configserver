@@ -38,7 +38,7 @@ func Tokenize(file []byte, vault *KeyVault) ([]byte, error) {
 	}
 
 	for _, match := range matches {
-		val := match[5 : len(match)-2]
+		val := match[5 : len(match)-1]
 		token, err := vault.CreateToken([]byte(val))
 		if err != nil {
 			continue
