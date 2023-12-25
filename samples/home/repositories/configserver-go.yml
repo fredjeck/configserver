@@ -2,7 +2,7 @@ name: go-configserver
 url: https://github.com/fredjeck/go-configserver
 refreshIntervalSeconds: 10
 token: abcd
-checkoutLocation: /home/fred/configserver_dev/repositories/goconfig
+checkoutLocation: ./git/goconfig
 clients:
   - myclientid
   - sample_client

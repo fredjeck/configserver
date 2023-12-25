@@ -1,4 +1,4 @@
 name: fav
 url: https://github.com/fredjeck/fav
 refreshIntervalSeconds: 10
-checkoutLocation: /home/fred/configserver_dev/repositories/fav
+checkoutLocation: ./git/repositories/fav

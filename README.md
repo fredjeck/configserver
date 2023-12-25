@@ -167,3 +167,11 @@ Then simply call the following command (be aware you will require the same priva
 ```shell
 configserver tokenize -k ./certs -f configuration.yaml -o tokenized.yaml
 ```
+
+## Using the provided container image
+
+```shell
+# Build the image
+$ podman build . -t configserver:latest
+$ podmarun -it --rm -p 8080:8080 -v ./samples/home/certs/:/configserver/certs -v ./samples/home/repositories/:/configserver/repositories localhost/configserver:latest
+```
