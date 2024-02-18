@@ -10,7 +10,10 @@ import (
 const ContextRequestId = "http.request_id"
 
 func die(w http.ResponseWriter, statusCode int, message string) {
-	http.Error(w, message, statusCode)
+	w.Header().Add("Content-Type", "application/json;charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(statusCode)
+	_, _ = fmt.Fprint(w, message)
 }
 
 func dief(w http.ResponseWriter, statusCode int, message string, args ...interface{}) {

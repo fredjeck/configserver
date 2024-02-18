@@ -1,8 +1,10 @@
-package server
+package middleware
 
 import (
 	"github.com/fredjeck/configserver/internal/auth"
 	"github.com/fredjeck/configserver/internal/encryption"
+	"github.com/fredjeck/configserver/internal/repository"
+	"github.com/fredjeck/configserver/internal/server"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"log/slog"
@@ -22,8 +24,8 @@ var (
 	})
 )
 
-// GitRepoMiddleware validates the provided bearer token signature is valid
-func (server *ConfigServer) GitRepoMiddleware() func(http.Handler) http.Handler {
+// GitMiddleware validates the provided bearer token signature is valid
+func GitMiddleware(vault *encryption.KeyVault, repositories *repository.Manager) func(http.Handler) http.Handler {
 
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
@@ -34,44 +36,41 @@ func (server *ConfigServer) GitRepoMiddleware() func(http.Handler) http.Handler 
 				return
 			}
 
-			authorization, err := auth.FromRequest(r, server.vault, server.authorization...)
-			if err != nil {
-				dieErr(w, r, http.StatusUnauthorized, "authorization failed", err)
-				return
-			}
+			context := r.Context()
+			authorization := context.Value("authorization").(auth.Authorization)
 
 			if r.Method != http.MethodGet {
-				dief(w, http.StatusBadRequest, "'%s' unsupported http verb", r.Method)
+				server.HttpBadRequest(w, "'%s' unsupported http verb", r.Method)
 				return
 			}
 
 			path = path[5:]
 			idx := strings.Index(path, "/")
 			if idx == -1 {
-				dief(w, http.StatusBadRequest, "'%s' malformed url", path)
+				server.HttpBadRequest(w, "'%s' malformed url", path)
 				return
 			}
 
 			repo := path[0:idx]
 			filePath := path[idx+1:]
 
-			authorized := authorization.IsAllowedRepository(server.repository, repo)
+			authorized := authorization.IsAllowedRepository(repositories, repo)
 
 			if !authorized {
-				die(w, http.StatusUnauthorized, "repository access is not allowed")
+				server.HttpNotAuthorized(w, "Access to repository '%s' is not allowed", repo)
 				return
 			}
 
-			content, err := server.repository.Get(repo, filePath)
+			content, err := repositories.Get(repo, filePath)
 			if err != nil {
 				slog.Error("file or repository not found", "repository", repo, "file_path", filePath)
-				dief(w, http.StatusNotFound, "'%s' was not found on this server", filePath)
+				server.HttpNotFound(w, "'%s' was not found on this server", filePath)
 				return
 			}
 
-			clearText, err := encryption.SubstituteTokens(content, server.vault)
+			clearText, err := encryption.SubstituteTokens(content, vault)
 			if err != nil {
-				dief(w, http.StatusNotFound, "'%s' : unable to decrypt file", filePath)
+				server.HttpInternalServerError(w, "'%s' : unable to decrypt file", filePath)
 				return
 			}
 
