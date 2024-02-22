@@ -1,10 +1,9 @@
-package middleware
+package server
 
 import (
 	"github.com/fredjeck/configserver/internal/auth"
 	"github.com/fredjeck/configserver/internal/encryption"
 	"github.com/fredjeck/configserver/internal/repository"
-	"github.com/fredjeck/configserver/internal/server"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"log/slog"
@@ -40,14 +39,14 @@ func GitMiddleware(vault *encryption.KeyVault, repositories *repository.Manager)
 			authorization := context.Value("authorization").(auth.Authorization)
 
 			if r.Method != http.MethodGet {
-				server.HttpBadRequest(w, "'%s' unsupported http verb", r.Method)
+				HttpBadRequest(w, "'%s' unsupported http verb", r.Method)
 				return
 			}
 
 			path = path[5:]
 			idx := strings.Index(path, "/")
 			if idx == -1 {
-				server.HttpBadRequest(w, "'%s' malformed url", path)
+				HttpBadRequest(w, "'%s' malformed url", path)
 				return
 			}
 
@@ -57,20 +56,20 @@ func GitMiddleware(vault *encryption.KeyVault, repositories *repository.Manager)
 			authorized := authorization.IsAllowedRepository(repositories, repo)
 
 			if !authorized {
-				server.HttpNotAuthorized(w, "Access to repository '%s' is not allowed", repo)
+				HttpNotAuthorized(w, "Access to repository '%s' is not allowed", repo)
 				return
 			}
 
 			content, err := repositories.Get(repo, filePath)
 			if err != nil {
 				slog.Error("file or repository not found", "repository", repo, "file_path", filePath)
-				server.HttpNotFound(w, "'%s' was not found on this server", filePath)
+				HttpNotFound(w, "'%s' was not found on this server", filePath)
 				return
 			}
 
 			clearText, err := encryption.SubstituteTokens(content, vault)
 			if err != nil {
-				server.HttpInternalServerError(w, "'%s' : unable to decrypt file", filePath)
+				HttpInternalServerError(w, "'%s' : unable to decrypt file", filePath)
 				return
 			}
 

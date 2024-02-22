@@ -1,9 +1,8 @@
-package middleware
+package server
 
 import (
 	"context"
 	"fmt"
-	"github.com/fredjeck/configserver/internal/server"
 	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
@@ -56,7 +55,7 @@ func RequestLoggingMiddleware() func(http.Handler) http.Handler {
 
 			ctx := r.Context()
 			id := uuid.New()
-			ctx = context.WithValue(ctx, server.ContextRequestId, id.String())
+			ctx = context.WithValue(ctx, ContextRequestId, id.String())
 
 			r = r.WithContext(ctx)
 
@@ -69,7 +68,7 @@ func RequestLoggingMiddleware() func(http.Handler) http.Handler {
 				slog.String("http.method", r.Method),
 				slog.String("http.path", r.URL.EscapedPath()),
 				slog.Duration("http.duration", elapsed),
-				slog.String(server.ContextRequestId, id.String()),
+				slog.String(ContextRequestId, id.String()),
 			)
 		}
 		return http.HandlerFunc(fn)

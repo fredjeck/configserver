@@ -1,10 +1,9 @@
-package middleware
+package server
 
 import (
 	"context"
 	"github.com/fredjeck/configserver/internal/auth"
 	"github.com/fredjeck/configserver/internal/encryption"
-	"github.com/fredjeck/configserver/internal/server"
 	"net/http"
 	"strings"
 )
@@ -27,7 +26,7 @@ func AuthMiddleware(supportedAuth []auth.AuthorizationKind, vault *encryption.Ke
 
 			authorization, err := auth.FromRequest(r, vault, supportedAuth...)
 			if err != nil {
-				server.HttpNotAuthorized(w, "You are not authorized to access '%s' on this server", r.URL.Path)
+				HttpNotAuthorized(w, "You are not authorized to access '%s' on this server", r.URL.Path)
 				return
 			}
 

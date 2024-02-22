@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/fredjeck/configserver/internal/auth"
 	"github.com/fredjeck/configserver/internal/repository"
-	"github.com/fredjeck/configserver/internal/server/middleware"
 	"log/slog"
 	"net/http"
 	"os"
@@ -41,9 +40,9 @@ func New(configuration *config.Configuration, repository *repository.Manager, va
 func (server *ConfigServer) Start() {
 
 	router := http.NewServeMux()
-	loggingMiddleware := middleware.RequestLoggingMiddleware()
-	gitMiddleware := middleware.GitMiddleware(server.vault, server.repository)
-	authmdw := middleware.AuthMiddleware(server.authorization, server.vault, "/git")
+	loggingMiddleware := RequestLoggingMiddleware()
+	gitMiddleware := GitMiddleware(server.vault, server.repository)
+	authMiddleware := AuthMiddleware(server.authorization, server.vault, "/git")
 
 	// router.HandleFunc("/api/stats", server.statistics)
 
@@ -63,7 +62,7 @@ func (server *ConfigServer) Start() {
 	router.Handle("/metrics", promhttp.Handler())
 
 	slog.Info(fmt.Sprintf("Now istening on %s", server.configuration.Server.ListenOn))
-	err := http.ListenAndServe(server.configuration.Server.ListenOn, loggingMiddleware(authmdw(gitMiddleware(router))))
+	err := http.ListenAndServe(server.configuration.Server.ListenOn, loggingMiddleware(authMiddleware(gitMiddleware(router))))
 	if err != nil {
 		slog.Error("error starting configserver:", "error", err)
 		os.Exit(1)
@@ -97,5 +96,5 @@ func (server *ConfigServer) writeError(status int, w http.ResponseWriter, messag
 // Writes the Git Middleware response
 func (server *ConfigServer) writeResponse(status int, content []byte, w http.ResponseWriter) {
 	w.WriteHeader(status)
-	_, _ = w.Write(content)
+	_, _ = w.Write(content[0:len(content):len(content)])
 }
