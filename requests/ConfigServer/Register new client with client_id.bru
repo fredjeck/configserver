@@ -1,0 +1,15 @@
+meta {
+  name: Register new client with client_id
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/api/register?client_id=MysteryClient
+  body: none
+  auth: none
+}
+
+query {
+  client_id: MysteryClient
+}
