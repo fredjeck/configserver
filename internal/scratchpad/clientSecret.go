@@ -16,15 +16,11 @@ const (
 
 // Generate creates a new client secret which will be valid for the given number of days
 // The generated client secret is bound to the provided client id
-func Generate(clientId string, validityDays int, passPhrase string) string {
-	validity := time.Hour * 24 * time.Duration(validityDays)
-	if validity <= 0 {
-		validity = ClientSecretValidity
-	}
-
-	idStr := fmt.Sprintf("%s%s%s", time.Now().Format(time.RFC3339), ClientSecretSeparatorChar, clientId)
-
-	return b64.StdEncoding.EncodeToString(Encrypt(idStr, passPhrase))
+func Generate(clientId string, expiresInDays int, passPhrase string) (string, time.Time) {
+	validity := time.Hour * 24 * time.Duration(expiresInDays)
+	expires := time.Now().Add(validity)
+	idStr := fmt.Sprintf("%s%s%s", expires.Format(time.RFC3339), ClientSecretSeparatorChar, clientId)
+	return b64.StdEncoding.EncodeToString(Encrypt(idStr, passPhrase)), expires
 }
 
 // Validate checks the provided client secret is valid and bound to the provided clientId
@@ -45,12 +41,12 @@ func Validate(clientId string, clientSecret string, passPhrase string, enforceVa
 		return false
 	}
 
-	generatedAt, err := time.Parse(time.RFC3339, elements[0])
-	if err == nil && generatedAt.Add(ClientSecretValidity).Before(time.Now()) {
+	expiresAt, err := time.Parse(time.RFC3339, elements[0])
+	if err == nil && time.Now().After(expiresAt) {
 		if enforceValidity {
 			return false
 		}
-		slog.Warn("client secret is expired, consider regenerating it", "client_id", clientId, "time_generated", generatedAt)
+		slog.Warn("client secret is expired, consider regenerating it", "client_id", clientId, "time_generated", expiresAt)
 	}
 
 	return elements[1] == clientId
