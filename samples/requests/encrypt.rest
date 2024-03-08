@@ -1,5 +1,0 @@
-POST http://localhost:8080/api/encrypt HTTP/1.1
-content-type: application/json
-
-This text value will be encrypted
-This one as well

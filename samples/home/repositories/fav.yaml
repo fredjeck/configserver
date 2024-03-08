@@ -1,4 +1,0 @@
-name: fav
-url: https://github.com/fredjeck/fav
-refreshIntervalSeconds: 3600
-checkoutLocation: ./git/repositories/fav

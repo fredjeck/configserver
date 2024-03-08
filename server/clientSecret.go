@@ -1,4 +1,4 @@
-package scratchpad
+package server
 
 import (
 	b64 "encoding/base64"

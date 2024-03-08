@@ -1,4 +1,0 @@
-parameters:
-  param_a: '{enc:I will be replaced by tokenization}'
-  param_b: '{enc:Hey me too}'
-  param_c: 'guys dont let me alone'

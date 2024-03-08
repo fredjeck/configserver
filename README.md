@@ -3,7 +3,7 @@
 ```
 This repository is work in progress
 
-Current status : working proof of concept 😊
+Current status : TOTAL MESS
 ```
 
 Inspired by spring-cloud-config, configserver is aimed as cloud/kubernetes payloads and allows to centrally manage your application configuration using gitops.

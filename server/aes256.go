@@ -1,4 +1,4 @@
-package scratchpad
+package server
 
 import (
 	"crypto/aes"

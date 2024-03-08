@@ -1,7 +1,0 @@
-certsLocation:  ./configserver/certs
-  listenOn: ":8080"
-  authorization:
-    - basic
-    - bearer
-git:
-  repositoriesConfigurationLocation: ./configuration/repositories

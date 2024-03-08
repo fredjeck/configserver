@@ -1,4 +1,4 @@
-package scratchpad
+package server
 
 import (
 	"github.com/stretchr/testify/assert"

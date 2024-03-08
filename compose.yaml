@@ -1,9 +1,0 @@
-services:
-  web:
-    build: .
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./samples/certs:/configserver/certs
-      - ./samples/repositories:/configserver/repositories
-      - ./samples/home/configserver_docker.yml:/configserver/configserver.yml
