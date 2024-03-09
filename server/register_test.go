@@ -10,10 +10,11 @@ import (
 	"time"
 )
 
-var TestConfiguration = &Configuration{
-	PassPhrase:       "This is a passphrase used to protect yourself",
-	ListenOn:         "127.0.0.1:4200",
-	SecretExpiryDays: 60,
+var RefactorTestConfiguration = &Configuration{
+	PassPhrase:             "This is a passphrase used to protect yourself",
+	ListenOn:               "127.0.0.1:4200",
+	SecretExpiryDays:       60,
+	ValidateSecretLifeSpan: true,
 }
 
 var ClientId = "SampleClientId"
@@ -21,57 +22,57 @@ var ClientId = "SampleClientId"
 func TestRegisterClientId(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/register?client_id="+ClientId, nil)
 	w := httptest.NewRecorder()
-	handleClientRegistration(TestConfiguration).ServeHTTP(w, req)
+	f := handleClientRegistration(RefactorTestConfiguration)
+	f(w, req)
 	assert.Equal(t, 200, w.Code)
 }
 
 func TestRegisterPayload(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/register?client_id="+ClientId, nil)
 	w := httptest.NewRecorder()
-	handleClientRegistration(TestConfiguration).ServeHTTP(w, req)
+	f := handleClientRegistration(RefactorTestConfiguration)
+	f(w, req)
 
 	res := w.Result()
-	defer res.Body.Close()
 	data, _ := io.ReadAll(res.Body)
 
-	m := map[string]interface{}{}
+	m := &RegisterClientResponse{}
 	_ = json.Unmarshal(data, &m)
 
-	assert.Equal(t, m["client_id"], ClientId)
-	assert.True(t, Validate(ClientId, m["client_secret"].(string), TestConfiguration.PassPhrase, true))
+	assert.Equal(t, m.ClientId, ClientId)
+	assert.True(t, Validate(ClientId, m.ClientSecret, RefactorTestConfiguration.PassPhrase, true))
 }
 
 func TestGenerateClientId(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/register", nil)
 	w := httptest.NewRecorder()
-	handleClientRegistration(TestConfiguration).ServeHTTP(w, req)
+	f := handleClientRegistration(RefactorTestConfiguration)
+	f(w, req)
 
 	res := w.Result()
-	defer res.Body.Close()
 	data, _ := io.ReadAll(res.Body)
 
-	m := map[string]interface{}{}
+	m := &RegisterClientResponse{}
 	_ = json.Unmarshal(data, &m)
 
-	assert.NotNil(t, m["client_id"], ClientId)
-	assert.Len(t, m["client_id"].(string), 36)
+	assert.NotNil(t, m.ClientId, ClientId)
+	assert.Len(t, m.ClientId, 36)
 }
 
 func TestRegistrationExpiry(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/register?client_id="+ClientId, nil)
 	w := httptest.NewRecorder()
-	handleClientRegistration(TestConfiguration).ServeHTTP(w, req)
+	f := handleClientRegistration(RefactorTestConfiguration)
+	f(w, req)
 
 	res := w.Result()
-	defer res.Body.Close()
 	data, _ := io.ReadAll(res.Body)
 
-	m := map[string]interface{}{}
+	m := &RegisterClientResponse{}
 	_ = json.Unmarshal(data, &m)
 
-	expires, _ := time.Parse(time.RFC3339, m["expires_at"].(string))
-	shouldExpire := time.Now().Add(time.Hour * 24 * time.Duration(TestConfiguration.SecretExpiryDays))
+	shouldExpire := time.Now().Add(time.Hour * 24 * time.Duration(RefactorTestConfiguration.SecretExpiryDays))
 
-	assert.True(t, time.Now().Before(expires))
-	assert.Equal(t, shouldExpire.Truncate(24*time.Hour), expires.Truncate(24*time.Hour))
+	assert.True(t, time.Now().Before(m.ExpiresAt))
+	assert.Equal(t, shouldExpire.Truncate(24*time.Hour), m.ExpiresAt.Truncate(24*time.Hour))
 }

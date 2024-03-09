@@ -18,6 +18,10 @@ func HttpInternalServerError(w http.ResponseWriter, detail string, params ...int
 	writeStatus(w, http.StatusInternalServerError, "Internal Server Error", detail, params...)
 }
 
+func HttpUnauthorized(w http.ResponseWriter, detail string, params ...interface{}) {
+	writeStatus(w, http.StatusUnauthorized, "Forbidden", detail, params...)
+}
+
 func writeStatus(w http.ResponseWriter, code int, title string, detail string, params ...interface{}) {
 	problem := &ProblemDetail{
 		Status: code,
