@@ -1,0 +1,23 @@
+meta {
+  name: Tokenize file
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/tokenize
+  body: text
+  auth: none
+}
+
+body:text {
+  {
+    "version": "1",
+    "name": "ConfigServer",
+    "type": "{enc:collection}",
+    "ignore": [
+      "{enc:node_modules}",
+      ".git"
+    ]
+  }
+}

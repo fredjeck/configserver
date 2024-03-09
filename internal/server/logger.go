@@ -46,7 +46,7 @@ func (rw *responseWriter) WriteHeader(code int) {
 	return
 }
 
-// RequestLoggingMiddleware logs the incoming HTTP request & its duration.
+// requestLogger logs the incoming HTTP request & its duration.
 func requestLogger() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {

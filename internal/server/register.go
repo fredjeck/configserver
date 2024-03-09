@@ -14,6 +14,7 @@ type RegisterClientResponse struct {
 	ExpiresAt    time.Time `json:"expires_at"`
 }
 
+// handleClientRegistration responds to client registration requests
 func handleClientRegistration(c *Configuration) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		clientId := r.URL.Query().Get("client_id")
@@ -22,7 +23,7 @@ func handleClientRegistration(c *Configuration) func(w http.ResponseWriter, r *h
 			clientId = uid.String()
 		}
 
-		clientSecret, expires := Generate(clientId, c.SecretExpiryDays, c.PassPhrase)
+		clientSecret, expires := generateClientSecret(clientId, c.SecretExpiryDays, c.PassPhrase)
 
 		jsonStr, err := json.Marshal(&RegisterClientResponse{
 			clientId, clientSecret, expires,

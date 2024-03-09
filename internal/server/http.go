@@ -22,6 +22,10 @@ func HttpUnauthorized(w http.ResponseWriter, detail string, params ...interface{
 	writeStatus(w, http.StatusUnauthorized, "Forbidden", detail, params...)
 }
 
+func HttpUnsupportedMediaType(w http.ResponseWriter, detail string, params ...interface{}) {
+	writeStatus(w, http.StatusUnsupportedMediaType, "Unsupported content type", detail, params...)
+}
+
 func writeStatus(w http.ResponseWriter, code int, title string, detail string, params ...interface{}) {
 	problem := &ProblemDetail{
 		Status: code,
@@ -32,8 +36,8 @@ func writeStatus(w http.ResponseWriter, code int, title string, detail string, p
 	w.Header().Add("Content-Type", "application/json;charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(problem.Status)
-	jsn, _ := json.Marshal(detail)
-	_, _ = fmt.Fprint(w, jsn)
+	jsn, _ := json.Marshal(problem)
+	_, _ = w.Write(jsn[0:len(jsn):len(jsn)])
 }
 
 func Ok(w http.ResponseWriter, content []byte) {

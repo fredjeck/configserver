@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -24,7 +25,9 @@ func NewConfigServer(c *Configuration) *ConfigServer {
 func (c *ConfigServer) Start() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/register", handleClientRegistration(c.Configuration))
+	mux.HandleFunc("POST /api/tokenize", handleFileTokenization(c.Configuration))
 	logger := requestLogger()
+	slog.Info(fmt.Sprintf("ConfigServer started and listening on %s", c.Configuration.ListenOn))
 	err := http.ListenAndServe(c.Configuration.ListenOn, logger(mux))
 	if err != nil {
 		slog.Error("error starting configserver:", "error", err)

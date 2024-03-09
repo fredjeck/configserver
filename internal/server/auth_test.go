@@ -59,7 +59,7 @@ func TestInvalidClientSecret(t *testing.T) {
 
 func TestValidClientSecret(t *testing.T) {
 	id := "AClientId"
-	secret, _ := Generate(id, 360, AuthTestConfiguration.PassPhrase)
+	secret, _ := generateClientSecret(id, 360, AuthTestConfiguration.PassPhrase)
 	token := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", id, secret)))
 
 	next := func(w http.ResponseWriter, r *http.Request) {

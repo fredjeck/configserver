@@ -1,4 +1,4 @@
-package server
+package utils
 
 import (
 	"crypto/aes"
@@ -12,8 +12,8 @@ func deriveKeyFromPassPhrase(password string) [32]byte {
 	return sha256.Sum256([]byte(password))
 }
 
-// Encrypt uses AES256GCP to encrypt the provided plainText string using the given passPhrase
-func Encrypt(plainText string, passPhrase string) []byte {
+// AesEncrypt uses AES256GCP to encrypt the provided plainText string using the given passPhrase
+func AesEncrypt(plainText string, passPhrase string) []byte {
 	secretKey := deriveKeyFromPassPhrase(passPhrase)
 
 	aesCipher, err := aes.NewCipher(secretKey[:])
@@ -36,9 +36,9 @@ func Encrypt(plainText string, passPhrase string) []byte {
 	return gcm.Seal(nonce, nonce, []byte(plainText), nil)
 }
 
-// Decrypt attempts to decrypt the provided bytes with the given passPhrase provided that it has been
+// AesDecrypt attempts to decrypt the provided bytes with the given passPhrase provided that it has been
 // encrypted with AES256-GCM encryption
-func Decrypt(cipherText []byte, passPhrase string) (string, error) {
+func AesDecrypt(cipherText []byte, passPhrase string) (string, error) {
 	secretKey := deriveKeyFromPassPhrase(passPhrase)
 
 	aesCipher, err := aes.NewCipher(secretKey[:])

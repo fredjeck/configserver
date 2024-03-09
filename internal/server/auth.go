@@ -7,7 +7,9 @@ import (
 	"strings"
 )
 
-// autenticatedOnly is a middleware which ensures the requests contains a valid Basic authentication.
+const msgInvalidAuthHeader = "Invalid authorization header"
+
+// AuthenticatedOnly is a middleware which ensures the requests contains a valid Basic authentication.
 // If the authentication succeeds the request context is augmented with the clientId key.
 func authenticatedOnly(c *Configuration) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -16,7 +18,7 @@ func authenticatedOnly(c *Configuration) func(http.Handler) http.Handler {
 
 			authComponents := strings.Split(authorization, " ")
 			if len(authComponents) != 2 {
-				HttpUnauthorized(w, "Invalid authorization header")
+				HttpUnauthorized(w, msgInvalidAuthHeader)
 				return
 			}
 
@@ -27,17 +29,17 @@ func authenticatedOnly(c *Configuration) func(http.Handler) http.Handler {
 
 			basicAuth, err := b64.StdEncoding.DecodeString(authComponents[1])
 			if err != nil {
-				HttpUnauthorized(w, "Invalid authorization header")
+				HttpUnauthorized(w, msgInvalidAuthHeader)
 				return
 			}
 
 			loginPwd := strings.Split(string(basicAuth), ":")
 			if len(loginPwd) != 2 {
-				HttpUnauthorized(w, "Invalid authorization header")
+				HttpUnauthorized(w, msgInvalidAuthHeader)
 				return
 			}
 
-			if !Validate(loginPwd[0], loginPwd[1], c.PassPhrase, c.ValidateSecretLifeSpan) {
+			if !validateClientSecret(loginPwd[0], loginPwd[1], c.PassPhrase, c.ValidateSecretLifeSpan) {
 				HttpUnauthorized(w, "Unauthorized")
 				return
 			}

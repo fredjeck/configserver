@@ -1,6 +1,8 @@
 package main
 
-import "github.com/fredjeck/configserver/server"
+import (
+	"github.com/fredjeck/configserver/internal/server"
+)
 
 func main() {
 	c := &server.Configuration{

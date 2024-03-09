@@ -1,0 +1,27 @@
+meta {
+  name: Tokenize file with wrong media type
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/api/tokenize
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: image/png
+}
+
+body:text {
+  {
+    "version": "1",
+    "name": "ConfigServer",
+    "type": "{enc:collection}",
+    "ignore": [
+      "{enc:node_modules}",
+      ".git"
+    ]
+  }
+}

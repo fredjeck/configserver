@@ -1,4 +1,4 @@
-package server
+package utils
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -14,8 +14,8 @@ func TestAesEncryptDecrypt(t *testing.T) {
 	txt := "This text will be encrypted and decrypted with a passphrase"
 	passPhrase := "This is a really long passphrase"
 
-	b := Encrypt(txt, passPhrase)
-	d, _ := Decrypt(b, passPhrase)
+	b := AesEncrypt(txt, passPhrase)
+	d, _ := AesDecrypt(b, passPhrase)
 
 	assert.Equal(t, txt, d)
 }
@@ -23,8 +23,8 @@ func TestAesEncryptDecrypt(t *testing.T) {
 func TestAesFailToDecrypt(t *testing.T) {
 	txt := "This text will be encrypted and decrypted with a passphrase"
 
-	b := Encrypt(txt, "passPhrase used for encryption")
-	_, err := Decrypt(b, "passPhrase used for decryption")
+	b := AesEncrypt(txt, "passPhrase used for encryption")
+	_, err := AesDecrypt(b, "passPhrase used for decryption")
 
 	assert.Error(t, err)
 }

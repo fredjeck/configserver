@@ -40,7 +40,7 @@ func TestRegisterPayload(t *testing.T) {
 	_ = json.Unmarshal(data, &m)
 
 	assert.Equal(t, m.ClientId, ClientId)
-	assert.True(t, Validate(ClientId, m.ClientSecret, RefactorTestConfiguration.PassPhrase, true))
+	assert.True(t, validateClientSecret(ClientId, m.ClientSecret, RefactorTestConfiguration.PassPhrase, true))
 }
 
 func TestGenerateClientId(t *testing.T) {
