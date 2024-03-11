@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/fredjeck/configserver/internal/config"
 	"github.com/fredjeck/configserver/internal/utils"
 	"io"
 	"net/http"
@@ -8,7 +9,7 @@ import (
 )
 
 // Handles the clients file tokenization requests
-func handleFileTokenization(c *Configuration) func(w http.ResponseWriter, r *http.Request) {
+func handleFileTokenization(c *config.Configuration) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		contentType := r.Header.Get("Content-Type")
 		if len(contentType) == 0 || !strings.HasPrefix(contentType, "text") {
@@ -22,7 +23,7 @@ func handleFileTokenization(c *Configuration) func(w http.ResponseWriter, r *htt
 			return
 		}
 
-		tokenized, err := utils.Tokenize(string(value), c.PassPhrase)
+		tokenized, err := utils.Tokenize(string(value), c.Server.PassPhrase)
 		if err != nil {
 			HttpInternalServerError(w, "An error occured while tokenizing the content")
 			return

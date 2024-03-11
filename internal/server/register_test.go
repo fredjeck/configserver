@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"github.com/fredjeck/configserver/internal/config"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
@@ -10,12 +11,7 @@ import (
 	"time"
 )
 
-var RefactorTestConfiguration = &Configuration{
-	PassPhrase:             "This is a passphrase used to protect yourself",
-	ListenOn:               "127.0.0.1:4200",
-	SecretExpiryDays:       60,
-	ValidateSecretLifeSpan: true,
-}
+var RefactorTestConfiguration = config.DefaultConfiguration
 
 var ClientId = "SampleClientId"
 
@@ -40,7 +36,7 @@ func TestRegisterPayload(t *testing.T) {
 	_ = json.Unmarshal(data, &m)
 
 	assert.Equal(t, m.ClientId, ClientId)
-	assert.True(t, validateClientSecret(ClientId, m.ClientSecret, RefactorTestConfiguration.PassPhrase, true))
+	assert.True(t, validateClientSecret(ClientId, m.ClientSecret, RefactorTestConfiguration.Server.PassPhrase, true))
 }
 
 func TestGenerateClientId(t *testing.T) {
@@ -71,7 +67,7 @@ func TestRegistrationExpiry(t *testing.T) {
 	m := &RegisterClientResponse{}
 	_ = json.Unmarshal(data, &m)
 
-	shouldExpire := time.Now().Add(time.Hour * 24 * time.Duration(RefactorTestConfiguration.SecretExpiryDays))
+	shouldExpire := time.Now().Add(time.Hour * 24 * time.Duration(RefactorTestConfiguration.Server.SecretExpiryDays))
 
 	assert.True(t, time.Now().Before(m.ExpiresAt))
 	assert.Equal(t, shouldExpire.Truncate(24*time.Hour), m.ExpiresAt.Truncate(24*time.Hour))

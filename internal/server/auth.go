@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	b64 "encoding/base64"
+	"github.com/fredjeck/configserver/internal/config"
 	"net/http"
 	"strings"
 )
@@ -11,7 +12,7 @@ const msgInvalidAuthHeader = "Invalid authorization header"
 
 // AuthenticatedOnly is a middleware which ensures the requests contains a valid Basic authentication.
 // If the authentication succeeds the request context is augmented with the clientId key.
-func authenticatedOnly(c *Configuration) func(http.Handler) http.Handler {
+func authenticatedOnly(c *config.Configuration) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			authorization := r.Header.Get("Authorization")
@@ -39,7 +40,7 @@ func authenticatedOnly(c *Configuration) func(http.Handler) http.Handler {
 				return
 			}
 
-			if !validateClientSecret(loginPwd[0], loginPwd[1], c.PassPhrase, c.ValidateSecretLifeSpan) {
+			if !validateClientSecret(loginPwd[0], loginPwd[1], c.Server.PassPhrase, c.Server.ValidateSecretLifeSpan) {
 				HttpUnauthorized(w, "Unauthorized")
 				return
 			}

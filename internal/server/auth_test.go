@@ -3,24 +3,20 @@ package server
 import (
 	b64 "encoding/base64"
 	"fmt"
+	"github.com/fredjeck/configserver/internal/config"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
-var AuthTestConfiguration = &Configuration{
-	PassPhrase:             "This is a passphrase used to protect yourself",
-	ListenOn:               "127.0.0.1:4200",
-	SecretExpiryDays:       60,
-	ValidateSecretLifeSpan: true,
-}
+var AuthTestConfiguration = config.DefaultConfiguration
 
 func TestInvalidAuthorizationScheme(t *testing.T) {
 	next := func(w http.ResponseWriter, r *http.Request) {}
 	mdw := authenticatedOnly(AuthTestConfiguration)
 
-	req := httptest.NewRequest(http.MethodGet, "http://www.your-domain.com/git", nil)
+	req := httptest.NewRequest(http.MethodGet, "https://www.your-domain.com/git", nil)
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer:%s", "token"))
 
 	w := httptest.NewRecorder()
@@ -33,7 +29,7 @@ func TestMalformedBasicAuth(t *testing.T) {
 	next := func(w http.ResponseWriter, r *http.Request) {}
 	mdw := authenticatedOnly(AuthTestConfiguration)
 
-	req := httptest.NewRequest(http.MethodGet, "http://www.your-domain.com/git", nil)
+	req := httptest.NewRequest(http.MethodGet, "https://www.your-domain.com/git", nil)
 	req.Header.Add("Authorization", fmt.Sprintf("Basic %s", "token"))
 
 	w := httptest.NewRecorder()
@@ -48,7 +44,7 @@ func TestInvalidClientSecret(t *testing.T) {
 
 	token := b64.StdEncoding.EncodeToString([]byte("a:b:c"))
 
-	req := httptest.NewRequest(http.MethodGet, "http://www.your-domain.com/git", nil)
+	req := httptest.NewRequest(http.MethodGet, "https://www.your-domain.com/git", nil)
 	req.Header.Add("Authorization", fmt.Sprintf("Basic %s", token))
 
 	w := httptest.NewRecorder()
@@ -59,7 +55,7 @@ func TestInvalidClientSecret(t *testing.T) {
 
 func TestValidClientSecret(t *testing.T) {
 	id := "AClientId"
-	secret, _ := generateClientSecret(id, 360, AuthTestConfiguration.PassPhrase)
+	secret, _ := generateClientSecret(id, 360, AuthTestConfiguration.Server.PassPhrase)
 	token := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", id, secret)))
 
 	next := func(w http.ResponseWriter, r *http.Request) {
@@ -67,7 +63,7 @@ func TestValidClientSecret(t *testing.T) {
 	}
 	mdw := authenticatedOnly(AuthTestConfiguration)
 
-	req := httptest.NewRequest(http.MethodGet, "http://www.your-domain.com/git", nil)
+	req := httptest.NewRequest(http.MethodGet, "https://www.your-domain.com/git", nil)
 	req.Header.Add("Authorization", fmt.Sprintf("Basic %s", token))
 
 	w := httptest.NewRecorder()

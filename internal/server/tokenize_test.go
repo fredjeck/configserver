@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/fredjeck/configserver/internal/config"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
@@ -9,12 +10,7 @@ import (
 	"testing"
 )
 
-var TokenizeTestConfiguration = &Configuration{
-	PassPhrase:             "This is a passphrase used to protect yourself",
-	ListenOn:               "127.0.0.1:4200",
-	SecretExpiryDays:       60,
-	ValidateSecretLifeSpan: true,
-}
+var TokenizeTestConfiguration = config.DefaultConfiguration
 
 func TestMissingContentType(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/api/tokenize", nil)

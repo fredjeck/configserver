@@ -36,7 +36,7 @@ func validateClientSecret(clientId string, clientSecret string, passPhrase strin
 		return false
 	}
 
-	elements := strings.Split(string(secret), ClientSecretSeparatorChar)
+	elements := strings.Split(secret, ClientSecretSeparatorChar)
 	if len(elements) != ClientSecretComponents {
 		return false
 	}

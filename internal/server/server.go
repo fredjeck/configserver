@@ -2,23 +2,17 @@ package server
 
 import (
 	"fmt"
+	"github.com/fredjeck/configserver/internal/config"
 	"log/slog"
 	"net/http"
 	"os"
 )
 
-type Configuration struct {
-	PassPhrase             string `yaml:"pass_phrase"`
-	ListenOn               string `yaml:"listen_on"`
-	SecretExpiryDays       int    `yaml:"secret_expiry_days"`
-	ValidateSecretLifeSpan bool   `yaml:"validate_secret_lifespan"`
-}
-
 type ConfigServer struct {
-	Configuration *Configuration
+	Configuration *config.Configuration
 }
 
-func NewConfigServer(c *Configuration) *ConfigServer {
+func NewConfigServer(c *config.Configuration) *ConfigServer {
 	return &ConfigServer{c}
 }
 

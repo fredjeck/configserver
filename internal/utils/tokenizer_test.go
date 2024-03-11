@@ -42,7 +42,7 @@ func TestTokenSubstitution(t *testing.T) {
 		CreateToken("value 4", pass),
 	)
 
-	clearText, err := Untokenize(text, pass)
+	clearText, err := Detokenize(text, pass)
 	assert.NoError(t, err)
 	assert.Equal(t, "p1='value 1';p2='value 2';p3='value 3';p4='value 4';", clearText)
 }
