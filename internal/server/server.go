@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"github.com/fredjeck/configserver/internal/config"
+	"github.com/fredjeck/configserver/internal/repository"
 	"log/slog"
 	"net/http"
 	"os"
@@ -17,9 +18,16 @@ func NewConfigServer(c *config.Configuration) *ConfigServer {
 }
 
 func (c *ConfigServer) Start() {
+
+	manager, mgr_err := repository.NewManager(c.Configuration.Repositories)
+	if mgr_err != nil {
+		slog.Error("error starting the repository manager, aborting:", "error", mgr_err)
+		os.Exit(1)
+	}
+	manager.Start()
+
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/register", handleClientRegistration(c.Configuration))
-	mux.HandleFunc("POST /api/tokenize", handleFileTokenization(c.Configuration))
+	addRoutes(mux, c.Configuration)
 	logger := requestLogger()
 	slog.Info(fmt.Sprintf("ConfigServer started and listening on %s", c.Configuration.ListenOn))
 	err := http.ListenAndServe(c.Configuration.ListenOn, logger(mux))

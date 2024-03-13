@@ -22,6 +22,8 @@ type Configuration struct {
 	*Environment
 	// Server related settings
 	*Server
+	// Repositories configuration
+	*Repositories
 }
 
 // Environment gathers all the environment variable used by ConfigServer
@@ -38,6 +40,21 @@ type Server struct {
 	ValidateSecretLifeSpan bool   `yaml:"validateSecretLifespan"` // if true, an expired secret will be considered invalid
 }
 
+type Repositories struct {
+	CheckoutLocation string        `yaml:"checkoutLocation"` // Folder to which the repositories are stored
+	Configuration    []*Repository `yaml:"configuration"`    // Collection of git repositories configuration
+}
+
+type Repository struct {
+	Name                   string   `yaml:"name"`
+	Url                    string   `yaml:"url"`
+	Branch                 string   `yaml:"branch"`
+	RefreshIntervalSeconds int      `yaml:"refreshIntervalSeconds"`
+	CheckoutLocation       string   `yaml:"checkoutLocation"`
+	Token                  string   `yaml:"token"`
+	Clients                []string `yaml:"clients"`
+}
+
 var DefaultConfiguration = &Configuration{
 	Environment: &Environment{
 		Kind: "production",
@@ -48,6 +65,9 @@ var DefaultConfiguration = &Configuration{
 		ListenOn:               ":4200",
 		SecretExpiryDays:       365,
 		ValidateSecretLifeSpan: false,
+	},
+	Repositories: &Repositories{
+		CheckoutLocation: "",
 	},
 }
 
@@ -96,19 +116,16 @@ func LoadFrom(path string) (*Configuration, error) {
 		return nil, fmt.Errorf("'%s' configserver configuration cannot be found or is not accessible : %w", path, err)
 	}
 
-	config := &Configuration{
-		Environment: &Environment{
-			Kind: kind,
-			Home: home,
-		},
-		Server: &Server{
-			ListenOn: ":4200",
-		},
-	}
+	config := DefaultConfiguration
 
 	err = yaml.Unmarshal(data, &config)
 	if err != nil {
 		return nil, fmt.Errorf("'%s' cannot unmarshal yaml file : %w", path, err)
+	}
+
+	if config.Repositories.CheckoutLocation == "" {
+		config.Repositories.CheckoutLocation = filepath.Join(home, "repositories")
+		slog.Info(fmt.Sprintf("Repositories checkout location defaulted to '%s'", config.Repositories.CheckoutLocation))
 	}
 
 	return config, nil
