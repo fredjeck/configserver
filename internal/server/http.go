@@ -26,6 +26,10 @@ func HttpUnsupportedMediaType(w http.ResponseWriter, detail string, params ...in
 	writeStatus(w, http.StatusUnsupportedMediaType, "Unsupported content type", detail, params...)
 }
 
+func HttpNotFound(w http.ResponseWriter, detail string, params ...interface{}) {
+	writeStatus(w, http.StatusUnsupportedMediaType, "Not found", detail, params...)
+}
+
 func writeStatus(w http.ResponseWriter, code int, title string, detail string, params ...interface{}) {
 	problem := &ProblemDetail{
 		Status: code,
@@ -40,7 +44,8 @@ func writeStatus(w http.ResponseWriter, code int, title string, detail string, p
 	_, _ = w.Write(jsn[0:len(jsn):len(jsn)])
 }
 
-func Ok(w http.ResponseWriter, content []byte) {
+func Ok(w http.ResponseWriter, content []byte, mimetype string) {
+	w.Header().Add("Content-Type", mimetype)
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(content[0:len(content):len(content)])
 }

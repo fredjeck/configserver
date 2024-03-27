@@ -1,11 +1,12 @@
 package server
 
 import (
-	"github.com/fredjeck/configserver/internal/config"
-	"github.com/fredjeck/configserver/internal/utils"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/fredjeck/configserver/internal/config"
+	"github.com/fredjeck/configserver/internal/utils"
 )
 
 // Handles the clients file tokenization requests
@@ -29,7 +30,6 @@ func handleFileTokenization(c *config.Configuration) func(w http.ResponseWriter,
 			return
 		}
 
-		w.Header().Add("Content-Type", "text/plain")
-		Ok(w, []byte(tokenized))
+		Ok(w, []byte(tokenized), "text/plain")
 	}
 }

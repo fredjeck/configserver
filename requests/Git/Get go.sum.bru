@@ -1,0 +1,16 @@
+meta {
+  name: Get go.sum
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/git/go-configserver/internal/repository/beholder.go
+  body: none
+  auth: basic
+}
+
+auth:basic {
+  username: myclientid
+  password: zIJrgWV0tJQlEOfuKU9Ww3taAGLS2Xg9iIFnioOTFkQgeOygrDL871HyNHJsFv+PNyTMd2vP8FFS52BUixhFYg==
+}

@@ -1,13 +1,16 @@
 package server
 
 import (
-	"github.com/fredjeck/configserver/internal/config"
 	"net/http"
+
+	"github.com/fredjeck/configserver/internal/config"
+	"github.com/fredjeck/configserver/internal/repository"
 )
 
-func addRoutes(mux *http.ServeMux, c *config.Configuration) {
+func addRoutes(mux *http.ServeMux, c *config.Configuration, m *repository.Manager) {
 	mux.HandleFunc("GET /api/register", handleClientRegistration(c))
 	mux.HandleFunc("POST /api/tokenize", handleFileTokenization(c))
+	mux.HandleFunc("GET /stats", handleStatistics(m))
 	requireAuth := authenticatedOnly(c)
-	mux.Handle("GET /git/{repository}/{path...}", requireAuth(http.HandlerFunc(handleGitRepositoryAccess())))
+	mux.Handle("GET /git/{repository}/{path...}", requireAuth(http.HandlerFunc(handleGitRepositoryAccess(m))))
 }

@@ -4,13 +4,14 @@ import "C"
 import (
 	"errors"
 	"fmt"
-	"github.com/fredjeck/configserver/internal/config"
-	"github.com/go-git/go-git/v5"
 	"log/slog"
 	"os"
 	"path"
 	"sync"
 	"time"
+
+	"github.com/fredjeck/configserver/internal/config"
+	"github.com/go-git/go-git/v5"
 )
 
 // Beholder are responsible for maintaining local copies of git repositories up to date based on the provided configuration

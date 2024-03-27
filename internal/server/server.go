@@ -1,33 +1,36 @@
+// Package server contains all the server related functions of the ConfigServer app
 package server
 
 import (
 	"fmt"
-	"github.com/fredjeck/configserver/internal/config"
-	"github.com/fredjeck/configserver/internal/repository"
 	"log/slog"
 	"net/http"
 	"os"
+
+	"github.com/fredjeck/configserver/internal/config"
+	"github.com/fredjeck/configserver/internal/repository"
 )
 
 type ConfigServer struct {
 	Configuration *config.Configuration
 }
 
+// NewConfigServer initializes a new ConfigServer instance
 func NewConfigServer(c *config.Configuration) *ConfigServer {
 	return &ConfigServer{c}
 }
 
 func (c *ConfigServer) Start() {
 
-	manager, mgr_err := repository.NewManager(c.Configuration.Repositories)
-	if mgr_err != nil {
-		slog.Error("error starting the repository manager, aborting:", "error", mgr_err)
+	manager, mgrErr := repository.NewManager(c.Configuration.Repositories)
+	if mgrErr != nil {
+		slog.Error("error starting the repository manager, aborting:", "error", mgrErr)
 		os.Exit(1)
 	}
 	manager.Start()
 
 	mux := http.NewServeMux()
-	addRoutes(mux, c.Configuration)
+	addRoutes(mux, c.Configuration, manager)
 	logger := requestLogger()
 	slog.Info(fmt.Sprintf("ConfigServer started and listening on %s", c.Configuration.ListenOn))
 	err := http.ListenAndServe(c.Configuration.ListenOn, logger(mux))

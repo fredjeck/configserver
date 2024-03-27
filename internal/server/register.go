@@ -2,10 +2,11 @@ package server
 
 import (
 	"encoding/json"
-	"github.com/fredjeck/configserver/internal/config"
-	"github.com/google/uuid"
 	"net/http"
 	"time"
+
+	"github.com/fredjeck/configserver/internal/config"
+	"github.com/google/uuid"
 )
 
 // RegisterClientResponse represents the API's output
@@ -33,7 +34,6 @@ func handleClientRegistration(c *config.Configuration) func(w http.ResponseWrite
 			HttpInternalServerError(w, err.Error())
 			return
 		}
-
-		Ok(w, jsonStr)
+		Ok(w, jsonStr, "application/json;charset=utf-8")
 	}
 }

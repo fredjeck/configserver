@@ -1,9 +1,11 @@
 package repository
 
 import (
+	"errors"
 	"fmt"
-	"github.com/fredjeck/configserver/internal/config"
 	"log/slog"
+
+	"github.com/fredjeck/configserver/internal/config"
 )
 
 // Manager is one-stop shop for managing multiple repositories configured via yaml files
@@ -43,11 +45,26 @@ func (mgr *Manager) Start() {
 	}
 }
 
+func (mgr *Manager) Statistics() map[string]*Statistics {
+	stats := make(map[string]*Statistics)
+	for name, repo := range mgr.Repositories {
+		stats[name] = repo.Statistics
+	}
+	return stats
+}
+
+var ErrClientNotAllowed = errors.New("client is not allowed to access the requested resource")
+var ErrRepositoryNotFound = errors.New("the requested repository does not exist")
+
 // Get scans the target repository for the file pointed by the provided path
-func (mgr *Manager) Get(repository string, path string) ([]byte, error) {
+func (mgr *Manager) Get(repository string, path string, clientID string) ([]byte, error) {
 	r, ok := mgr.Repositories[repository]
 	if !ok {
-		return nil, fmt.Errorf("'%s' is not a valid repository", repository)
+		return nil, ErrRepositoryNotFound
+	}
+
+	if !r.IsClientAllowed(clientID) {
+		return nil, ErrClientNotAllowed
 	}
 
 	if !r.Beholder.Active {
@@ -58,18 +75,8 @@ func (mgr *Manager) Get(repository string, path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	mgr.Repositories[repository].Statistics.HitCount++
 	return contents, nil
-}
-
-// IsClientAllowed checks if the provided client identifier is configured for repository access
-func (mgr *Manager) IsClientAllowed(repository string, client string) bool {
-	if repo, ok := mgr.Repositories[repository]; ok {
-		if repo.IsClientAllowed(client) {
-			return true
-		}
-	}
-	return false
 }
 
 // listen reads the heartbeat channel for beholder events
