@@ -2,16 +2,18 @@ package utils
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
+const passphrase = "This is a sample passphrase"
+
 func TestCreateDecryptToken(t *testing.T) {
-	pass := "This is a sample passphrase"
 	content := "token content"
-	token := CreateToken(content, pass)
-	decrypted, err := DecryptToken(token, pass)
+	token := CreateToken(content, passphrase)
+	decrypted, err := DecryptToken(token, passphrase)
 
 	assert.NoError(t, err)
 	assert.True(t, strings.HasPrefix(token, "{enc:"))
@@ -21,11 +23,9 @@ func TestCreateDecryptToken(t *testing.T) {
 }
 
 func TestTokenize(t *testing.T) {
-	pass := "This is a sample passphrase"
-
 	text := "p1='{enc:value1}';p2='{enc:value2}';"
 
-	tokenized, err := Tokenize(text, pass)
+	tokenized, err := Tokenize(text, passphrase)
 	assert.NoError(t, err)
 	assert.NotEqual(t, text, tokenized)
 	assert.NotContains(t, "value1", tokenized)
@@ -33,16 +33,14 @@ func TestTokenize(t *testing.T) {
 }
 
 func TestTokenSubstitution(t *testing.T) {
-	pass := "This is a sample passphrase"
-
 	text := fmt.Sprintf("p1='%s';p2='%s';p3='%s';p4='%s';",
-		CreateToken("value 1", pass),
-		CreateToken("value 2", pass),
-		CreateToken("value 3", pass),
-		CreateToken("value 4", pass),
+		CreateToken("value 1", passphrase),
+		CreateToken("value 2", passphrase),
+		CreateToken("value 3", passphrase),
+		CreateToken("value 4", passphrase),
 	)
 
-	clearText, err := Detokenize(text, pass)
+	clearText, err := Detokenize(text, passphrase)
 	assert.NoError(t, err)
 	assert.Equal(t, "p1='value 1';p2='value 2';p3='value 3';p4='value 4';", clearText)
 }

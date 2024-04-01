@@ -3,9 +3,10 @@ package server
 import (
 	"context"
 	b64 "encoding/base64"
-	"github.com/fredjeck/configserver/internal/config"
 	"net/http"
 	"strings"
+
+	"github.com/fredjeck/configserver/internal/config"
 )
 
 const msgInvalidAuthHeader = "Invalid authorization header"
@@ -19,33 +20,33 @@ func authenticatedOnly(c *config.Configuration) func(http.Handler) http.Handler 
 
 			authComponents := strings.Split(authorization, " ")
 			if len(authComponents) != 2 {
-				HttpUnauthorized(w, msgInvalidAuthHeader)
+				HTTPUnauthorized(w, msgInvalidAuthHeader)
 				return
 			}
 
 			if strings.ToLower(authComponents[0]) != "basic" {
-				HttpUnauthorized(w, "Unsupported authorization scheme '%s'", authComponents[0])
+				HTTPUnauthorized(w, "Unsupported authorization scheme '%s'", authComponents[0])
 				return
 			}
 
 			basicAuth, err := b64.StdEncoding.DecodeString(authComponents[1])
 			if err != nil {
-				HttpUnauthorized(w, msgInvalidAuthHeader)
+				HTTPUnauthorized(w, msgInvalidAuthHeader)
 				return
 			}
 
 			loginPwd := strings.Split(string(basicAuth), ":")
 			if len(loginPwd) != 2 {
-				HttpUnauthorized(w, msgInvalidAuthHeader)
+				HTTPUnauthorized(w, msgInvalidAuthHeader)
 				return
 			}
 
 			if !validateClientSecret(loginPwd[0], loginPwd[1], c.Server.PassPhrase, c.Server.ValidateSecretLifeSpan) {
-				HttpUnauthorized(w, "Unauthorized")
+				HTTPUnauthorized(w, "Unauthorized")
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), "clientId", loginPwd[0])
+			ctx := context.WithValue(r.Context(), ctxClientID{}, loginPwd[0])
 			rWithCtx := r.WithContext(ctx)
 
 			next.ServeHTTP(w, rWithCtx)

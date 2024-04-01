@@ -11,6 +11,7 @@ import (
 	"github.com/fredjeck/configserver/internal/repository"
 )
 
+// ConfigServer is a standalone server which aims to securely serve git repositories via http
 type ConfigServer struct {
 	Configuration *config.Configuration
 }
@@ -20,6 +21,7 @@ func NewConfigServer(c *config.Configuration) *ConfigServer {
 	return &ConfigServer{c}
 }
 
+// Start is where all the magic happens
 func (c *ConfigServer) Start() {
 
 	manager, mgrErr := repository.NewManager(c.Configuration.Repositories)

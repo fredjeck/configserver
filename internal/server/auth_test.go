@@ -3,11 +3,12 @@ package server
 import (
 	b64 "encoding/base64"
 	"fmt"
-	"github.com/fredjeck/configserver/internal/config"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/fredjeck/configserver/internal/config"
+	"github.com/stretchr/testify/assert"
 )
 
 var AuthTestConfiguration = config.DefaultConfiguration
@@ -59,7 +60,7 @@ func TestValidClientSecret(t *testing.T) {
 	token := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", id, secret)))
 
 	next := func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, id, r.Context().Value("clientId"))
+		assert.Equal(t, id, r.Context().Value(ctxClientID{}))
 	}
 	mdw := authenticatedOnly(AuthTestConfiguration)
 

@@ -6,6 +6,10 @@ import (
 	"net/http"
 )
 
+type ctxRequestID struct{}
+type ctxClientID struct{}
+
+// ProblemDetail is a RFC9457 compliant error detail used by the server to return errors.
 type ProblemDetail struct {
 	ProblemType string `json:"type"`
 	Title       string `json:"title"`
@@ -14,19 +18,23 @@ type ProblemDetail struct {
 	Status      int    `json:"status"`
 }
 
-func HttpInternalServerError(w http.ResponseWriter, detail string, params ...interface{}) {
+// HTTPInternalServerError returns an HTTP 500 error along a RFC9457 compliant error detail
+func HTTPInternalServerError(w http.ResponseWriter, detail string, params ...interface{}) {
 	writeStatus(w, http.StatusInternalServerError, "Internal Server Error", detail, params...)
 }
 
-func HttpUnauthorized(w http.ResponseWriter, detail string, params ...interface{}) {
+// HTTPUnauthorized returns an HTTP 401 error along a RFC9457 compliant error detail
+func HTTPUnauthorized(w http.ResponseWriter, detail string, params ...interface{}) {
 	writeStatus(w, http.StatusUnauthorized, "Forbidden", detail, params...)
 }
 
-func HttpUnsupportedMediaType(w http.ResponseWriter, detail string, params ...interface{}) {
+// HTTPUnsupportedMediaType returns an HTTP 415 error along a RFC9457 compliant error detail
+func HTTPUnsupportedMediaType(w http.ResponseWriter, detail string, params ...interface{}) {
 	writeStatus(w, http.StatusUnsupportedMediaType, "Unsupported content type", detail, params...)
 }
 
-func HttpNotFound(w http.ResponseWriter, detail string, params ...interface{}) {
+// HTTPNotFound returns an HTTP 404 error along a RFC9457 compliant error detail
+func HTTPNotFound(w http.ResponseWriter, detail string, params ...interface{}) {
 	writeStatus(w, http.StatusUnsupportedMediaType, "Not found", detail, params...)
 }
 
@@ -44,6 +52,7 @@ func writeStatus(w http.ResponseWriter, code int, title string, detail string, p
 	_, _ = w.Write(jsn[0:len(jsn):len(jsn)])
 }
 
+// Ok returns an HTTP 201 response along the provided content
 func Ok(w http.ResponseWriter, content []byte, mimetype string) {
 	w.Header().Add("Content-Type", mimetype)
 	w.WriteHeader(http.StatusOK)

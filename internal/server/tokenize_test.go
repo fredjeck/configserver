@@ -1,19 +1,22 @@
 package server
 
 import (
-	"github.com/fredjeck/configserver/internal/config"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/fredjeck/configserver/internal/config"
+	"github.com/stretchr/testify/assert"
 )
 
 var TokenizeTestConfiguration = config.DefaultConfiguration
 
+const tokenizeURL = "/api/tokenize"
+
 func TestMissingContentType(t *testing.T) {
-	req := httptest.NewRequest(http.MethodPost, "/api/tokenize", nil)
+	req := httptest.NewRequest(http.MethodPost, tokenizeURL, nil)
 	w := httptest.NewRecorder()
 	f := handleFileTokenization(TokenizeTestConfiguration)
 	f(w, req)
@@ -21,7 +24,7 @@ func TestMissingContentType(t *testing.T) {
 }
 
 func TestInvalidContentType(t *testing.T) {
-	req := httptest.NewRequest(http.MethodPost, "/api/tokenize", nil)
+	req := httptest.NewRequest(http.MethodPost, tokenizeURL, nil)
 	req.Header.Add("Content-Type", "image/png")
 	w := httptest.NewRecorder()
 	f := handleFileTokenization(TokenizeTestConfiguration)
@@ -39,7 +42,7 @@ func TestTokenization(t *testing.T) {
 	"lastProperty""{enc:EncodeMeLast}"
 }
 `
-	req := httptest.NewRequest(http.MethodPost, "/api/tokenize", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, tokenizeURL, strings.NewReader(body))
 	req.Header.Add("Content-Type", "text/plain")
 	w := httptest.NewRecorder()
 	f := handleFileTokenization(TokenizeTestConfiguration)

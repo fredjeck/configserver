@@ -2,21 +2,23 @@ package server
 
 import (
 	"encoding/json"
-	"github.com/fredjeck/configserver/internal/config"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/fredjeck/configserver/internal/config"
+	"github.com/stretchr/testify/assert"
 )
 
 var RefactorTestConfiguration = config.DefaultConfiguration
 
-var ClientId = "SampleClientId"
+const registerClientID = "SampleClientId"
+const registerURL = "/api/register?client_id=" + registerClientID
 
 func TestRegisterClientId(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/api/register?client_id="+ClientId, nil)
+	req := httptest.NewRequest(http.MethodGet, registerURL, nil)
 	w := httptest.NewRecorder()
 	f := handleClientRegistration(RefactorTestConfiguration)
 	f(w, req)
@@ -24,7 +26,7 @@ func TestRegisterClientId(t *testing.T) {
 }
 
 func TestRegisterPayload(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/api/register?client_id="+ClientId, nil)
+	req := httptest.NewRequest(http.MethodGet, registerURL, nil)
 	w := httptest.NewRecorder()
 	f := handleClientRegistration(RefactorTestConfiguration)
 	f(w, req)
@@ -35,8 +37,8 @@ func TestRegisterPayload(t *testing.T) {
 	m := &RegisterClientResponse{}
 	_ = json.Unmarshal(data, &m)
 
-	assert.Equal(t, m.ClientId, ClientId)
-	assert.True(t, validateClientSecret(ClientId, m.ClientSecret, RefactorTestConfiguration.Server.PassPhrase, true))
+	assert.Equal(t, m.ClientID, registerClientID)
+	assert.True(t, validateClientSecret(registerClientID, m.ClientSecret, RefactorTestConfiguration.Server.PassPhrase, true))
 }
 
 func TestGenerateClientId(t *testing.T) {
@@ -51,12 +53,12 @@ func TestGenerateClientId(t *testing.T) {
 	m := &RegisterClientResponse{}
 	_ = json.Unmarshal(data, &m)
 
-	assert.NotNil(t, m.ClientId, ClientId)
-	assert.Len(t, m.ClientId, 36)
+	assert.NotNil(t, m.ClientID, registerClientID)
+	assert.Len(t, m.ClientID, 36)
 }
 
 func TestRegistrationExpiry(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/api/register?client_id="+ClientId, nil)
+	req := httptest.NewRequest(http.MethodGet, registerURL, nil)
 	w := httptest.NewRecorder()
 	f := handleClientRegistration(RefactorTestConfiguration)
 	f(w, req)
