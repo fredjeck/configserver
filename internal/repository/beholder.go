@@ -50,7 +50,7 @@ func (w *Beholder) watchInternal() {
 		w.mutex.Lock()
 		last := time.Now()
 
-		slog.Info("pulling repository", logKeyRepositoryName, w.configuration.Name, logKeyCheckoutLocation, w.checkoutLocation)
+		slog.Info("cloning repository", logKeyRepositoryName, w.configuration.Name, logKeyCheckoutLocation, w.checkoutLocation, logKeyRepositoryURL, w.configuration.URL)
 
 		if err := os.MkdirAll(w.checkoutLocation, os.ModePerm); err != nil {
 			lastError = fmt.Errorf("cannot create path '%s' to checkout '%s': %w", w.checkoutLocation, w.configuration.Name, err)
@@ -61,12 +61,12 @@ func (w *Beholder) watchInternal() {
 		if err != nil {
 			slog.Info("no local copy found, creating a fresh clone", logKeyRepositoryName, w.configuration.Name)
 			workspace, err = git.PlainClone(w.checkoutLocation, false, &git.CloneOptions{
-				URL:      w.configuration.Url,
+				URL:      w.configuration.URL,
 				Progress: os.Stdout,
 			})
 
 			if err != nil {
-				lastError = fmt.Errorf("could not clone '%s' to '%s' : %w", w.configuration.Url, w.checkoutLocation, err)
+				lastError = fmt.Errorf("could not clone '%s' to '%s' : %w", w.configuration.URL, w.checkoutLocation, err)
 				break
 			}
 		}
@@ -83,7 +83,7 @@ func (w *Beholder) watchInternal() {
 				RefSpecs: []config.RefSpec{"refs/*:refs/*", "HEAD:refs/heads/HEAD"},
 			})
 			if err != nil {
-				lastError = fmt.Errorf("'%s' : unable to fetch repository : %w", w.configuration.Url, err)
+				lastError = fmt.Errorf("'%s' : unable to fetch repository : %w", w.configuration.URL, err)
 				break
 			}
 			err = tree.Checkout(&git.CheckoutOptions{
@@ -91,7 +91,7 @@ func (w *Beholder) watchInternal() {
 				Force:  true,
 			})
 			if err != nil {
-				lastError = fmt.Errorf("'%s' : unable to checkout branch '%s': %w", w.configuration.Url, w.configuration.Branch, err)
+				lastError = fmt.Errorf("'%s' : unable to checkout branch '%s': %w", w.configuration.URL, w.configuration.Branch, err)
 				break
 			}
 		}
@@ -106,14 +106,14 @@ func (w *Beholder) watchInternal() {
 		}
 
 		nextRefresh := time.Duration(w.configuration.RefreshIntervalSeconds) * time.Second
-		slog.Info(fmt.Sprintf("'%s' next pull will occur @ %s", w.configuration.Name, time.Now().Add(nextRefresh)), logKeyRepositoryName, w.configuration.Name, logKeyCheckoutLocation, w.checkoutLocation)
+		slog.Info(fmt.Sprintf("'%s' next pull will occur @ %s", w.configuration.Name, time.Now().Add(nextRefresh)), logKeyRepositoryName, w.configuration.Name, logKeyCheckoutLocation, w.checkoutLocation, logKeyRepositoryURL, w.configuration.URL)
 		w.broadcast(last, time.Now().Add(nextRefresh), nil)
 		w.mutex.Unlock()
 		time.Sleep(nextRefresh)
 	}
 
 	// If we are here something bad happend
-	slog.Error("Cannot update repository - stopping beholder", slog.Any("error", lastError), logKeyRepositoryName, w.configuration.Name, logKeyCheckoutLocation, w.checkoutLocation)
+	slog.Error("Cannot update repository - stopping beholder", slog.Any("error", lastError), logKeyRepositoryName, w.configuration.Name, logKeyCheckoutLocation, w.checkoutLocation, logKeyRepositoryURL, w.configuration.URL)
 	w.broadcast(time.Now(), time.Now(), lastError)
 	w.mutex.Unlock()
 	w.Active = false

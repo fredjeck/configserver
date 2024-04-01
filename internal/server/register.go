@@ -31,7 +31,7 @@ func handleClientRegistration(c *configuration.Configuration) func(w http.Respon
 			clientID, clientSecret, expires,
 		})
 		if err != nil {
-			HTTPInternalServerError(w, err.Error())
+			HTTPInternalServerError(w, r, err.Error())
 			return
 		}
 		Ok(w, jsonStr, "application/json;charset=utf-8")

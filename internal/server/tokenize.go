@@ -14,19 +14,19 @@ func handleFileTokenization(c *configuration.Configuration) func(w http.Response
 	return func(w http.ResponseWriter, r *http.Request) {
 		contentType := r.Header.Get("Content-Type")
 		if len(contentType) == 0 || !strings.HasPrefix(contentType, "text") {
-			HTTPUnsupportedMediaType(w, "Unsupported content type '%s' only text/* is supported", contentType)
+			HTTPUnsupportedMediaType(w, r, "Unsupported content type '%s' only text/* is supported", contentType)
 			return
 		}
 
 		value, err := io.ReadAll(r.Body)
 		if err != nil {
-			HTTPInternalServerError(w, "Cannot parse request body")
+			HTTPInternalServerError(w, r, "Cannot parse request body")
 			return
 		}
 
 		tokenized, err := utils.Tokenize(string(value), c.Server.PassPhrase)
 		if err != nil {
-			HTTPInternalServerError(w, "An error occured while tokenizing the content")
+			HTTPInternalServerError(w, r, "An error occured while tokenizing the content")
 			return
 		}
 

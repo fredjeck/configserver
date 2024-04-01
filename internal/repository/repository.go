@@ -9,7 +9,8 @@ import (
 )
 
 const logKeyRepositoryName = "repository.name"
-const logKeyCheckoutLocation = "repository.checkout.location"
+const logKeyCheckoutLocation = "repository.checkout_location"
+const logKeyRepositoryURL = "repository.url"
 
 // Repository is a handle on a git repository
 type Repository struct {

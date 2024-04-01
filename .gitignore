@@ -15,10 +15,7 @@
 # vendor/
 
 build/
-
-# Samples folders
-/samples/home/certs/
-/samples/home/git/
+cmd
 
 # ID config
 .fleet

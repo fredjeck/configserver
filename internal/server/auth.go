@@ -20,29 +20,29 @@ func authenticatedOnly(c *configuration.Configuration) func(http.Handler) http.H
 
 			authComponents := strings.Split(authorization, " ")
 			if len(authComponents) != 2 {
-				HTTPUnauthorized(w, msgInvalidAuthHeader)
+				HTTPUnauthorized(w, r, msgInvalidAuthHeader)
 				return
 			}
 
 			if strings.ToLower(authComponents[0]) != "basic" {
-				HTTPUnauthorized(w, "Unsupported authorization scheme '%s'", authComponents[0])
+				HTTPUnauthorized(w, r, "Unsupported authorization scheme '%s'", authComponents[0])
 				return
 			}
 
 			basicAuth, err := b64.StdEncoding.DecodeString(authComponents[1])
 			if err != nil {
-				HTTPUnauthorized(w, msgInvalidAuthHeader)
+				HTTPUnauthorized(w, r, msgInvalidAuthHeader)
 				return
 			}
 
 			loginPwd := strings.Split(string(basicAuth), ":")
 			if len(loginPwd) != 2 {
-				HTTPUnauthorized(w, msgInvalidAuthHeader)
+				HTTPUnauthorized(w, r, msgInvalidAuthHeader)
 				return
 			}
 
 			if !validateClientSecret(loginPwd[0], loginPwd[1], c.Server.PassPhrase, c.Server.ValidateSecretLifeSpan) {
-				HTTPUnauthorized(w, "Unauthorized")
+				HTTPUnauthorized(w, r, "client '%s' is not allowed to access this repository", loginPwd[0])
 				return
 			}
 

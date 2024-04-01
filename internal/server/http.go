@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 )
 
@@ -19,30 +20,36 @@ type ProblemDetail struct {
 }
 
 // HTTPInternalServerError returns an HTTP 500 error along a RFC9457 compliant error detail
-func HTTPInternalServerError(w http.ResponseWriter, detail string, params ...interface{}) {
-	writeStatus(w, http.StatusInternalServerError, "Internal Server Error", detail, params...)
+func HTTPInternalServerError(w http.ResponseWriter, r *http.Request, detail string, params ...interface{}) {
+	writeStatus(w, r, http.StatusInternalServerError, "Internal Server Error", detail, params...)
 }
 
 // HTTPUnauthorized returns an HTTP 401 error along a RFC9457 compliant error detail
-func HTTPUnauthorized(w http.ResponseWriter, detail string, params ...interface{}) {
-	writeStatus(w, http.StatusUnauthorized, "Forbidden", detail, params...)
+func HTTPUnauthorized(w http.ResponseWriter, r *http.Request, detail string, params ...interface{}) {
+	writeStatus(w, r, http.StatusUnauthorized, "Forbidden", detail, params...)
 }
 
 // HTTPUnsupportedMediaType returns an HTTP 415 error along a RFC9457 compliant error detail
-func HTTPUnsupportedMediaType(w http.ResponseWriter, detail string, params ...interface{}) {
-	writeStatus(w, http.StatusUnsupportedMediaType, "Unsupported content type", detail, params...)
+func HTTPUnsupportedMediaType(w http.ResponseWriter, r *http.Request, detail string, params ...interface{}) {
+	writeStatus(w, r, http.StatusUnsupportedMediaType, "Unsupported content type", detail, params...)
 }
 
 // HTTPNotFound returns an HTTP 404 error along a RFC9457 compliant error detail
-func HTTPNotFound(w http.ResponseWriter, detail string, params ...interface{}) {
-	writeStatus(w, http.StatusUnsupportedMediaType, "Not found", detail, params...)
+func HTTPNotFound(w http.ResponseWriter, r *http.Request, detail string, params ...interface{}) {
+	writeStatus(w, r, http.StatusUnsupportedMediaType, "Not found", detail, params...)
 }
 
-func writeStatus(w http.ResponseWriter, code int, title string, detail string, params ...interface{}) {
+func writeStatus(w http.ResponseWriter, r *http.Request, code int, title string, detail string, params ...interface{}) {
+
+	strDetail := fmt.Sprintf(detail, params...)
+	if code > 300 {
+		requestID := r.Context().Value(ctxRequestID{}).(string)
+		slog.Warn(strDetail, HTTPRequestStatus, code, HTTPRequestID, requestID)
+	}
 	problem := &ProblemDetail{
 		Status: code,
 		Title:  title,
-		Detail: fmt.Sprintf(detail, params...),
+		Detail: strDetail,
 	}
 
 	w.Header().Add("Content-Type", "application/json;charset=utf-8")

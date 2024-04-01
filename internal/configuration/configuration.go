@@ -19,6 +19,7 @@ const EnvConfigServerHome string = "CONFIGSERVER_HOME"
 
 // Configuration groups all the supported configuration options
 type Configuration struct {
+	Source string
 	// Environment variables for ease of use
 	*Environment
 	// Server related settings
@@ -41,14 +42,16 @@ type Server struct {
 	ValidateSecretLifeSpan bool   `yaml:"validateSecretLifespan"` // if true, an expired secret will be considered invalid
 }
 
+// Repositories materializes the GIT repositories configuration
 type Repositories struct {
 	CheckoutLocation string        `yaml:"checkoutLocation"` // Folder to which the repositories are stored
 	Configuration    []*Repository `yaml:"configuration"`    // Collection of git repositories configuration
 }
 
+// Repository is a single GIT repository configuration
 type Repository struct {
 	Name                   string   `yaml:"name"`
-	Url                    string   `yaml:"url"`
+	URL                    string   `yaml:"url"`
 	Branch                 string   `yaml:"branch"`
 	RefreshIntervalSeconds int      `yaml:"refreshIntervalSeconds"`
 	CheckoutLocation       string   `yaml:"checkoutLocation"`
@@ -56,6 +59,7 @@ type Repository struct {
 	Clients                []string `yaml:"clients"`
 }
 
+// DefaultConfiguration for when its needed
 var DefaultConfiguration = &Configuration{
 	Environment: &Environment{
 		Kind: "production",
@@ -108,16 +112,17 @@ func LoadFrom(path string) (*Configuration, error) {
 	if _, err := os.Stat(path); err != nil {
 		configPath = filepath.Join(home, "configserver.yml")
 		if _, err := os.Stat(configPath); err != nil {
-			return nil, fmt.Errorf("'%s' configserver configuration cannot be found or is not accessible: %w", path, err)
+			return nil, fmt.Errorf("'%s' configserver configuration cannot be found or is not accessible: %w", configPath, err)
 		}
 	}
 
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		return nil, fmt.Errorf("'%s' configserver configuration cannot be found or is not accessible : %w", path, err)
+		return nil, fmt.Errorf("'%s' configserver configuration cannot be loaded : %w", configPath, err)
 	}
 
 	config := DefaultConfiguration
+	config.Source = configPath
 
 	err = yaml.Unmarshal(data, &config)
 	if err != nil {
@@ -137,5 +142,6 @@ func (c *Configuration) LogEnvironment() {
 	slog.Info("Configserver Runtime Environment",
 		EnvConfigServerEnvironment, c.Environment.Kind,
 		EnvConfigServerHome, c.Home,
+		"configuration.source", c.Source,
 	)
 }
