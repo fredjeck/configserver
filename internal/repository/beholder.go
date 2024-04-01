@@ -7,28 +7,33 @@ import (
 	"log/slog"
 	"os"
 	"path"
+	"path/filepath"
 	"sync"
 	"time"
 
-	"github.com/fredjeck/configserver/internal/config"
+	"github.com/fredjeck/configserver/internal/configuration"
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/google/uuid"
 )
 
 // Beholder are responsible for maintaining local copies of git repositories up to date based on the provided configuration
 // As they are running in background they make use of a heartbeat channel towards their initiator to communicate about
 // repositories update event
 type Beholder struct {
-	configuration    *config.Repository // The current configured repository
-	checkoutLocation string             // Place where the repositories are checked out
-	Active           bool               // true if the repository is actively monitored and can be used
-	heartbeat        chan UpdateEvent   // Uplink to the beholder's initiator
-	mutex            *sync.RWMutex      // Used to ensure no read operation is allowed while the repository is being updated
+	configuration    *configuration.Repository // The current configured repository
+	checkoutLocation string                    // Place where the repositories are checked out
+	Active           bool                      // true if the repository is actively monitored and can be used
+	heartbeat        chan UpdateEvent          // Uplink to the beholder's initiator
+	mutex            *sync.RWMutex             // Used to ensure no read operation is allowed while the repository is being updated
 }
 
 // NewBeholder initiates a new beholder for the provided configuration
 // a call to Watch() is mandatory to start the beholder process
-func NewBeholder(checkoutLocation string, configuration *config.Repository, heartbeat chan UpdateEvent) *Beholder {
-	return &Beholder{configuration, checkoutLocation, true, heartbeat, &sync.RWMutex{}}
+func NewBeholder(checkoutLocation string, configuration *configuration.Repository, heartbeat chan UpdateEvent) *Beholder {
+	uid := uuid.New()
+	return &Beholder{configuration, filepath.Join(checkoutLocation, uid.String()), true, heartbeat, &sync.RWMutex{}}
 }
 
 // Watch initiates the creation of a local copy of the configured repository and will periodically update the repository
@@ -39,13 +44,13 @@ func (w *Beholder) Watch() {
 
 // see Watch
 func (w *Beholder) watchInternal() {
-	var lastError error = nil
+	var lastError error
 
 	for {
 		w.mutex.Lock()
 		last := time.Now()
 
-		slog.Info("pulling repository", LogKeyRepositoryName, w.configuration.Name)
+		slog.Info("pulling repository", logKeyRepositoryName, w.configuration.Name, logKeyCheckoutLocation, w.checkoutLocation)
 
 		if err := os.MkdirAll(w.checkoutLocation, os.ModePerm); err != nil {
 			lastError = fmt.Errorf("cannot create path '%s' to checkout '%s': %w", w.checkoutLocation, w.configuration.Name, err)
@@ -54,11 +59,10 @@ func (w *Beholder) watchInternal() {
 
 		workspace, err := git.PlainOpen(w.checkoutLocation)
 		if err != nil {
-			slog.Info("no local copy found, creating a fresh clone", LogKeyRepositoryName, w.configuration.Name)
+			slog.Info("no local copy found, creating a fresh clone", logKeyRepositoryName, w.configuration.Name)
 			workspace, err = git.PlainClone(w.checkoutLocation, false, &git.CloneOptions{
-				URL:        w.configuration.Url,
-				Progress:   os.Stdout,
-				RemoteName: w.configuration.Branch,
+				URL:      w.configuration.Url,
+				Progress: os.Stdout,
 			})
 
 			if err != nil {
@@ -69,13 +73,31 @@ func (w *Beholder) watchInternal() {
 
 		tree, err := workspace.Worktree()
 		if err != nil {
-			lastError = fmt.Errorf("'%s' : unable to open local copy : %s", w.checkoutLocation, err)
+			lastError = fmt.Errorf("'%s' : unable to open local copy : %w", w.checkoutLocation, err)
 			break
 		}
 
+		if len(w.configuration.Branch) > 0 {
+			// Fetch remote branches
+			err = workspace.Fetch(&git.FetchOptions{
+				RefSpecs: []config.RefSpec{"refs/*:refs/*", "HEAD:refs/heads/HEAD"},
+			})
+			if err != nil {
+				lastError = fmt.Errorf("'%s' : unable to fetch repository : %w", w.configuration.Url, err)
+				break
+			}
+			err = tree.Checkout(&git.CheckoutOptions{
+				Branch: plumbing.NewBranchReferenceName(w.configuration.Branch),
+				Force:  true,
+			})
+			if err != nil {
+				lastError = fmt.Errorf("'%s' : unable to checkout branch '%s': %w", w.configuration.Url, w.configuration.Branch, err)
+				break
+			}
+		}
+
 		err = tree.Pull(&git.PullOptions{
-			RemoteName: w.configuration.Branch,
-			Force:      true,
+			Force: true,
 		})
 
 		if err != nil && !errors.Is(err, git.NoErrAlreadyUpToDate) {
@@ -84,14 +106,14 @@ func (w *Beholder) watchInternal() {
 		}
 
 		nextRefresh := time.Duration(w.configuration.RefreshIntervalSeconds) * time.Second
-		slog.Info(fmt.Sprintf("'%s' next pull will occur @ %s", w.configuration.Name, time.Now().Add(nextRefresh)), LogKeyRepositoryName, w.configuration.Name)
+		slog.Info(fmt.Sprintf("'%s' next pull will occur @ %s", w.configuration.Name, time.Now().Add(nextRefresh)), logKeyRepositoryName, w.configuration.Name, logKeyCheckoutLocation, w.checkoutLocation)
 		w.broadcast(last, time.Now().Add(nextRefresh), nil)
 		w.mutex.Unlock()
 		time.Sleep(nextRefresh)
 	}
 
 	// If we are here something bad happend
-	slog.Error("Cannot update repository - stopping beholder", slog.Any("error", lastError))
+	slog.Error("Cannot update repository - stopping beholder", slog.Any("error", lastError), logKeyRepositoryName, w.configuration.Name, logKeyCheckoutLocation, w.checkoutLocation)
 	w.broadcast(time.Now(), time.Now(), lastError)
 	w.mutex.Unlock()
 	w.Active = false

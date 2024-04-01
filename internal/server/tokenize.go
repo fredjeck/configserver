@@ -5,12 +5,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/fredjeck/configserver/internal/config"
+	"github.com/fredjeck/configserver/internal/configuration"
 	"github.com/fredjeck/configserver/internal/utils"
 )
 
 // Handles the clients file tokenization requests
-func handleFileTokenization(c *config.Configuration) func(w http.ResponseWriter, r *http.Request) {
+func handleFileTokenization(c *configuration.Configuration) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		contentType := r.Header.Get("Content-Type")
 		if len(contentType) == 0 || !strings.HasPrefix(contentType, "text") {

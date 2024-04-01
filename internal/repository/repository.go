@@ -3,17 +3,19 @@
 package repository
 
 import (
-	"github.com/fredjeck/configserver/internal/config"
 	"time"
+
+	"github.com/fredjeck/configserver/internal/configuration"
 )
 
-const LogKeyRepositoryName = "repository_name"
+const logKeyRepositoryName = "repository.name"
+const logKeyCheckoutLocation = "repository.checkout.location"
 
 // Repository is a handle on a git repository
 type Repository struct {
-	Configuration *config.Repository // repository configuration
-	Statistics    *Statistics        // repository access statistics
-	Beholder      *Beholder          // beholder process managing the repository
+	Configuration *configuration.Repository // repository configuration
+	Statistics    *Statistics               // repository access statistics
+	Beholder      *Beholder                 // beholder process managing the repository
 }
 
 // Statistics allows to maintain some stats about repository access
@@ -33,10 +35,10 @@ type UpdateEvent struct {
 	Active         bool
 }
 
-// IsClientAllowed verifies if the provided clientId is allowed to access the repository based on its configuration
-func (repo *Repository) IsClientAllowed(clientId string) bool {
+// IsClientAllowed verifies if the provided ClientID is allowed to access the repository based on its configuration
+func (repo *Repository) IsClientAllowed(ClientID string) bool {
 	for _, client := range repo.Configuration.Clients {
-		if client == clientId {
+		if client == ClientID {
 			return true
 		}
 	}

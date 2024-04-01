@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/fredjeck/configserver/internal/config"
+	"github.com/fredjeck/configserver/internal/configuration"
 	"github.com/google/uuid"
 )
 
@@ -17,7 +17,7 @@ type RegisterClientResponse struct {
 }
 
 // handleClientRegistration responds to client registration requests
-func handleClientRegistration(c *config.Configuration) func(w http.ResponseWriter, r *http.Request) {
+func handleClientRegistration(c *configuration.Configuration) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		clientID := r.URL.Query().Get("client_id")
 		if len(clientID) == 0 {

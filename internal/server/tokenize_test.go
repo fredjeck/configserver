@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fredjeck/configserver/internal/config"
+	"github.com/fredjeck/configserver/internal/configuration"
 	"github.com/stretchr/testify/assert"
 )
 
-var TokenizeTestConfiguration = config.DefaultConfiguration
+var TokenizeTestConfiguration = configuration.DefaultConfiguration
 
 const tokenizeURL = "/api/tokenize"
 

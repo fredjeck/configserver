@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fredjeck/configserver/internal/config"
+	"github.com/fredjeck/configserver/internal/configuration"
 	"github.com/stretchr/testify/assert"
 )
 
-var RefactorTestConfiguration = config.DefaultConfiguration
+var RefactorTestConfiguration = configuration.DefaultConfiguration
 
 const registerClientID = "SampleClientId"
 const registerURL = "/api/register?client_id=" + registerClientID

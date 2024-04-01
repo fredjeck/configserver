@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/fredjeck/configserver/internal/config"
+	config "github.com/fredjeck/configserver/internal/configuration"
 )
 
 // Manager is one-stop shop for managing multiple repositories configured via yaml files
@@ -22,10 +22,6 @@ func NewManager(configuration *config.Repositories) (*Manager, error) {
 
 	repos := make(map[string]*Repository)
 	for _, repo := range configuration.Configuration {
-
-		if len(repo.Branch) == 0 {
-			repo.Branch = "main"
-		}
 		repos[repo.Name] = &Repository{
 			Configuration: repo,
 			Beholder:      NewBeholder(configuration.CheckoutLocation, repo, hb),
@@ -45,6 +41,7 @@ func (mgr *Manager) Start() {
 	}
 }
 
+// Statistics returns underlying git repository access statistics
 func (mgr *Manager) Statistics() map[string]*Statistics {
 	stats := make(map[string]*Statistics)
 	for name, repo := range mgr.Repositories {
@@ -53,7 +50,10 @@ func (mgr *Manager) Statistics() map[string]*Statistics {
 	return stats
 }
 
+// ErrClientNotAllowed is returned whenever a client tries to access a repository it has not been whitelisted for
 var ErrClientNotAllowed = errors.New("client is not allowed to access the requested resource")
+
+// ErrRepositoryNotFound is returned whenever a client requests a repository which is not existing
 var ErrRepositoryNotFound = errors.New("the requested repository does not exist")
 
 // Get scans the target repository for the file pointed by the provided path

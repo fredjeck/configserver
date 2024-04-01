@@ -7,11 +7,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/fredjeck/configserver/internal/config"
+	"github.com/fredjeck/configserver/internal/configuration"
 	"github.com/stretchr/testify/assert"
 )
 
-var AuthTestConfiguration = config.DefaultConfiguration
+var AuthTestConfiguration = configuration.DefaultConfiguration
 
 func TestInvalidAuthorizationScheme(t *testing.T) {
 	next := func(w http.ResponseWriter, r *http.Request) {}

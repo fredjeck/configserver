@@ -7,17 +7,17 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/fredjeck/configserver/internal/config"
+	"github.com/fredjeck/configserver/internal/configuration"
 	"github.com/fredjeck/configserver/internal/repository"
 )
 
 // ConfigServer is a standalone server which aims to securely serve git repositories via http
 type ConfigServer struct {
-	Configuration *config.Configuration
+	Configuration *configuration.Configuration
 }
 
 // NewConfigServer initializes a new ConfigServer instance
-func NewConfigServer(c *config.Configuration) *ConfigServer {
+func NewConfigServer(c *configuration.Configuration) *ConfigServer {
 	return &ConfigServer{c}
 }
 
