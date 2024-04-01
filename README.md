@@ -1,15 +1,13 @@
 # configserver
 
 ```
-This repository is work in progress
-
-Current status : TOTAL MESS
+Current status : Work In Progress but usable 😃
 ```
 
-Inspired by spring-cloud-config, configserver is aimed as cloud/kubernetes payloads and allows to centrally manage your application configuration using gitops.
-Centrally manage your configuration within a git repositorz - the configuration will be automagically updated on your running pods.
+Nowadays a wide range of solutions exists when it comes to managing your running pod configuration, from secrets to AzureKeyVaults - I tried a lot of them but none really fitted my needs. Therefore I decided to write configserver.
+(heavily) Inspired by spring-cloud-config, configserver is framework agnostic (written in goloang), and is aimed at cloud/kubernetes payloads to allows you to centrally manage your application configuration using gitops.
 
-configserver supports :
+Configserver supports :
 
 - mutliple git repositories for one central instance
 - sensitive content encryption
@@ -18,162 +16,138 @@ configserver supports :
 
 ## Philosophy
 
-Configserver aims at simplicity and security (well it tries to). Goal is to limit the configuration hassle and make use of conventions.
+Configserver aims at simplicity and security (well it tries to) and limit its dependencies to a strict minimum
 
-## Configuring
+## Overview
 
-### General configuration
+```mermaid
+flowchart LR
+    A[[Repository-A/Branch-Integration]] 
+    B[[Repository-A/Branch-Production]] 
+    C[[Repository-B/Main]] 
+    D{{ConfigServer}}
+    D -->|Monitor| A
+    D -->|Monitor| B
+    D -->|Monitor| C
+    E([POD Instance]) -.-> |GET http://svc.local/git/repository-a/configfile| D
+    F([POD Instance]) --- G 
+    G[Sidecar] -.-> |GET http://svc.local/git/repository-b/configfile| D
+```
 
-Configserver is configured via a central `configserver.yml` file.
-This file is located at startup either using the `-c` command line argument or is located by the path pointed by the `CONFIGSERVER_HOME`environment variable.
-If nothing is provided, configserver will attempt to locate this file in the `/var/run/configserver` directory
+## Getting Started
+
+### Prepare your configuration file
+
+ConfigServer one single configuration file for all its needs :
 
 ```yaml
-# Location in which encryption keys can be found
-certsLocation:  /var/run/configserver/certs
+environment:
+  kind: production # If production logs are using JSON format if anything else logs are human readable
+  home: /var/run/configserver # Not used yet
+
 server:
-  # Network interface and port on which the server listens for incoming HTTP requests
-  listenOn: ":8080"
-  authorization:
-    - basic
-    - bearer
-git:
-  # Path where git repositories configs are stored   
-  repositoriesConfigurationLocation: ./samples/home/repositories
+  passPhrase: To infinity and beyond # Single passphrase used to encrypt sensitive content and generate client secrets
+  listenOn: ":4200" # Port on which ConfigServer listens
+  secretExpiryDays: 365 # Number of days a client secret is valid 
+  validateSecretLifeSpan: false # If true will reject outdated secret, if false will only issue a warning in the logs
+
+repositories:
+  checkoutLocation: /tmp/configserver # Root path where the repositories are cloned
+  configuration: # Configuration can contain multiple git repositories, they will be accessible via the /git/{name} url
+    - name: configserver-samples-integration 
+      url: https://github.com/fredjeck/configserver-samples
+      branch: integration # Name of the branch to be checked out, if not provided defaults to main
+      refreshIntervalSeconds: 3600 # Interval at which the repository is updated locally
+      clients: # List of allowed client Ids
+        - myclientid
+        - sample_client
 ```
 
-### Git repositories configuration
+### Run your configserver
 
-configserver supports multiple repositories - each repo needs to be configured in a separate yaml file :
+In a pod simply run the `configserver` executable optionally using the `-c` switch to specify the configuration location.
+By default the configuration file **configserver.yml** will be located in `/var/run/configserver`
 
+### Prepare your repositories
+
+If your configuration files contain sensitive contents, enclose the sensitive values within the `{enc:}` tag. For instance
 ```yaml
-# Name of the repository - needs to be unique
-name: fav
-# Repository checkout URL
-url: https://github.com/fredjeck/fav
-# Repository checkout interval in seconds
-refreshIntervalSeconds: 10
-# Repository checkout location
-checkoutLocation: ./samples/home/git/fav
-# List of allowed client ids
-clients:
-  - myclientid
+password = 'SECRETPASSWORD'
+```
+will become
+```yaml
+password = '{enc:SECRETPASSWORD}'
 ```
 
-The `clients` array lists all the client ids allowed to access the repository, please see *registering a new client* below
+Then use the tokenize endpoint of your running endpoint to convert your file :
+
+```shell
+curl --request POST \
+  --url http://localhost:4200/api/tokenize \
+  --data 'password = '\''{enc:SECRETPASSWORD}'\'''
+```
+
+which would result in :
+```yaml
+password = '{enc:HGSrEasO3EDYdTA5w+259/4hCxfmlIKh6i7wwZF9eFIg9kFwF7iMjg4T}'
+```
+
+And commit the resulting file in your repository
 
 ## Using configserver
 
-Configserver is mostly used via its API
+Configserver offers a simple API for all common tasks
 
 ### Registering a new client
 
-```http request
-POST http://localhost:8080/api/register HTTP/1.1
-content-type: application/json
-
-{
-    "client_id": "sample_client"
-}
+```shell
+curl --request GET \
+  --url 'http://localhost:4200/api/register?client_id=myclientid'
 ```
 
 Will generate a client secret for the provided client id
 
 ```json
 {
-  "client_id": "sample_client",
-  "client_secret": "SECRET"
+  "client_id": "myclientid",
+  "client_secret": "LjTo0NW7Fq0LLfpGFkJRWSlLvlETeEOt5T53zyWLJyqSI4BvlG8MehGK28RoG2LCJZ2VGDO2vU6PM3MwN/5TNw==",
+  "expires_at": "2025-04-01T21:04:11.357903614+02:00"
 }
 ```
 
-### Auhtorization
+### Obtaining repository statistics
 
-#### Configuring Authorization
-
-Configserver supports the following authorization schemes: Basic, Bearer or None.
-Enabled authorization schemes are defined in the main configuration file.
-
-#### Bearer Tokens
-
-Before accessing files, the client needs to obtain a bearer token.
-The targeted repository names need to be specified using the scope parameter.
-Client authentication needs to be passed using the basic authentication header
-```http request
-POST http://localhost:8080/oauth2/authorize HTTP/1.1
-content-type: application/x-www-form-urlencoded
-Authorization: Basic B64(client_id:client_secret)
-
-grant_type=client_credentials&scope=repo1 repo2 repo3
+```shell
+curl --request GET \
+  --url http://localhost:4200/stats
 ```
+
+returns
 
 ```json
 {
-  "access_token": "BEARER",
-  "token_type": "bearer",
-  "expires_in": 86400,
-  "scope": ""
+  "configserver-samples-integration": {
+    "hitCount": 0,
+    "lastUpdate": "2024-04-01T20:56:31.559944915+02:00",
+    "nextUpdate": "2024-04-01T21:56:32.541023156+02:00",
+    "lastError": null
+  }
 }
 ```
 
-repository data can then be accessed via the `/git/REPO_NAME/PATH` for instance */git/configserver/README.md*
+### Accessing Content
 
-```http request
-GET http://localhost:8080/git/configserver/README.md HTTP/1.1
-Authorization: Bearer BEARER_TOKEN
-```
+Repository content requires the generated ClientID and Secret to be provided as part of a Basic Auth scheme [See MDN docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication).
 
-## Encrypting sensitive content
-
-Sensitive content like passwords can be encrypted using the encrypt (for a single value) or tokenize (for a whole pre-tokenizen file) endpoints.
-go-config server replaces sensitive values by encrypted tokens using the following formalism `{enc:ENCRYPTED_VALUE}`
-
-You can encrypt a single value using the encrypt endpoint or using the tokenize command:
-```http request
-POST http://localhost:8080/api/encrypt HTTP/1.1
-content-type: application/json
-
-This text value will be encrypted
-This one as well
-```
-
-Which will return
-
-```json
-{
-  "token": "{enc:ZkcF7Xk+bnU6axHs/UdtmXKQxVS71+7a13ctfYrRhpbXeKW2ZnkzFujwzx4IJcAGppgdd9hybsrEXA8YUbB1+CqAFjcQj8Yfzi+HuxV1}"
-}
-```
-
-or you could pre-tokenize your configuration file
-```http request
-POST http://localhost:8080/api/tokenize HTTP/1.1
-content-type: text/plain
-
-contentToTokenize:
- -p1: '{enc:value1}'
- -p2: '{enc:value2}'
-```
-
-Which would return the tokenized configuration ready to be copied and pasted
-```yaml
-contentToTokenize:
- -p1: '{enc:ZkcF7Xk+bnU6axHs/UdtmXKQxVS71+7a13ctfYrRhpbXeKW2ZnkzFujwzx4IJcAGppgdd9hybsrEXA8YUbB1+CqAFjcQj8Yfzi+HuxV1}'
- -p2: '{enc:ZkcF7Xk+bnU6axHs/UdtmXKQxVS71+7a13ctfYrRhpbXeKW2ZnkzFujwzx4IJcAGppgdd9hybsrEXA8YUbB1+CqAFjcQj8Yfzi+HuxV1}'
-```
-
-### Using the tokenize command
-
-Like with the endpoint, prepare your files to be tokenized.
-Then simply call the following command (be aware you will require the same private key used on your instance to be available locally)
+Repositories are accessible via the `/git/{repository name}/{path}` endpoint where :
+- **repository name** is the name given in the configuration
+- **path** is a path fragment from the repository root
 
 ```shell
-configserver tokenize -k ./certs -f configuration.yaml -o tokenized.yaml
+curl --request GET \
+  --url http://localhost:4200/git/configserver-samples-integration/configuration/branch.md
 ```
 
-## Using the provided container image
+#### Repository ACL
 
-```shell
-# Build the image
-$ podman build . -t configserver:latest
-$ podmarun -it --rm -p 8080:8080 -v ./samples/home/certs/:/configserver/certs -v ./samples/home/repositories/:/configserver/repositories localhost/configserver:latest
-```
+For a ClientID to be allowed to browse a repository, the ClientID must be declared in the **clients** section of the configserver.yml file for the repository.
